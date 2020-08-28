@@ -2,8 +2,13 @@
 
 package model
 
+import (
+	"time"
+)
+
 type Meal struct {
 	ID       string      `json:"id"`
+	MealDate time.Time   `json:"mealDate"`
 	MealType string      `json:"mealType"`
 	Food     []*MealFood `json:"food"`
 }
