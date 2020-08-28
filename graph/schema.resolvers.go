@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"time"
 
 	"github.com/mvandergrift/energy-gql/graph/generated"
 	"github.com/mvandergrift/energy-gql/graph/model"
@@ -22,7 +23,7 @@ func (r *mealResolver) Food(ctx context.Context, obj *model.Meal) ([]*model.Meal
 
 func (r *queryResolver) AllMeals(ctx context.Context, userID *int) ([]*model.Meal, error) {
 	var meals []*model.Meal
-	var tx = r.DB.Table("meal").Select("meal.id, meal_type.name as meal_type").Joins("join meal_type ON meal_type.id = meal.meal_type_id").Order("meal_date, meal_type_id")
+	var tx = r.DB.Table("meal").Select("meal.id, meal.meal_date, meal_type.name as meal_type").Joins("join meal_type ON meal_type.id = meal.meal_type_id").Order("meal_date, meal_type_id")
 
 	if userID != nil {
 		tx.Where("user_id = ?", userID)
@@ -30,6 +31,17 @@ func (r *queryResolver) AllMeals(ctx context.Context, userID *int) ([]*model.Mea
 
 	if err := tx.Scan(&meals).Error; err != nil {
 		return meals, err
+	}
+
+	return meals, nil
+}
+
+func (r *queryResolver) MealsForDay(ctx context.Context, userID int, date time.Time) ([]*model.Meal, error) {
+	var meals []*model.Meal
+	var tx = r.DB.Table("meal").Select("meal.id, meal.meal_date, meal_type.name as meal_type").Joins("join meal_type ON meal_type.id = meal.meal_type_id").Where("user_id = ? and meal.meal_date = ?", userID, date).Order("meal_date, meal_type_id")
+
+	if err := tx.Scan(&meals).Error; err != nil {
+		return nil, err
 	}
 
 	return meals, nil

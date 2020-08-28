@@ -4,6 +4,8 @@
 
 directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
+scalar Time
+
 type MealFood {
   id: Int!
   name: String!
@@ -14,6 +16,7 @@ type MealFood {
 
 type Meal {
   id: ID!
+  mealDate: Time!
   mealType: String!
   food: [MealFood]! @goField(forceResolver: true)
 }
@@ -27,5 +30,5 @@ type User {
 
 type Query {
   allMeals(userId: Int): [Meal]!
-  allFood: [Food]!
+  mealsForDay(userId: Int!, date: Time!): [Meal]!
 }

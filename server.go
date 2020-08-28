@@ -46,7 +46,7 @@ func main() {
 	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
 
 	if *debugMode {
-		log.Println("[iex]\tStarting iex-gql")
+		log.Printf("[iex]\tconnect to http://localhost:%s/query for data", os.Getenv("PORT"))
 		log.Printf("[iex]\tconnect to http://localhost:%s/ for GraphQL playground", os.Getenv("PORT"))
 		log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), handlers.LoggingHandler(os.Stdout, r)))
 	}
