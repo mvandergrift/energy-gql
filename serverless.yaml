@@ -1,0 +1,50 @@
+service: energy-gql
+
+provider:
+    name: aws
+    runtime: go1.x
+    memorySize: 128
+    timeout: 10
+    apiGateway:
+        minimumCompressionSize: 1024
+    vpc:
+        securityGroupIds:
+            - sg-bd2c65db
+        subnetIds:
+            - subnet-09b8d868e87c9604f
+            - subnet-000f2ba0154516547
+    environment:
+        DB_HOST: db.strategic-dev.com
+        DB_USER: energy
+        DB_PWD: secret123
+        DB_PORT: 5432
+        DB_DATABASE: energy
+        DEBUG: TRUE
+
+package:
+    exclude:
+        - ./**
+    include:
+        - ./bin/**
+
+functions:
+    query:
+        handler: bin/energy-gql
+        events:
+            - http:
+                  path: query
+                  method: post
+                  cors: true
+                  #authorizer: arn:aws:lambda:us-east-1:716819593880:function:jwtRsaCustomAuthorizer
+            - http:
+                  path: /
+                  method: ANY
+# plugins:
+#     - serverless-domain-manager
+
+# custom:
+#     customDomain:
+#         domainName: api.strategic-dev.com
+#         basePath: "energy"
+#         stage: ${self:provider.stage}
+#         createRoute53Record: false

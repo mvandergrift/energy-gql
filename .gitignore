@@ -5,8 +5,9 @@
 *.so
 *.dylib
 *.tmp
-iex-gql
+energy-gql
 bin/
+.serverless
 
 # Test binary, built with `go test -c`
 *.test
@@ -27,3 +28,5 @@ bin/
 
 # Database
 postgres-data
+
+energy-gql
