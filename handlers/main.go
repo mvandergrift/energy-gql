@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
+	//"github.com/99designs/gqlgen/graphql/playground"
 
 	//"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/jinzhu/gorm"
@@ -43,10 +43,11 @@ func init() {
 
 	schema := generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{DB: db}})
 	server := handler.NewDefaultServer(schema)
-	r.Handle("/query", server)
-	r.Handle("/energy/query", server)
-	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	r.Handle("/energy/", playground.Handler("GraphQL playground", "/energy/query"))
+	r.Handle("*", server)
+	// r.Handle("/query", server)
+	// r.Handle("/energy/query", server)
+	// r.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	// r.Handle("/energy/", playground.Handler("GraphQL playground", "/energy/query"))
 	muxAdapter = gorillamux.New(r)
 }
 
