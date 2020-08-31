@@ -12,9 +12,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/99designs/gqlgen/graphql/handler"
-	//"github.com/99designs/gqlgen/graphql/playground"
 
-	//"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/jinzhu/gorm"
 
 	"github.com/mvandergrift/energy-gql/graph"
@@ -43,17 +41,21 @@ func init() {
 
 	schema := generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{DB: db}})
 	server := handler.NewDefaultServer(schema)
-	r.Handle("*", server)
-	// r.Handle("/query", server)
-	// r.Handle("/energy/query", server)
-	// r.Handle("/", playground.Handler("GraphQL playground", "/query"))
+
+	// Catch-all path. Use AWS API Gateway to handle assigning specific paths to this handler @mvandergrift
+	r.PathPrefix("/").Handler(server).Methods("POST")
+
+	// Disabled playground to avoid obvious security issue. Also, reduce configuration complexity around
+	// explicit pathing of /query endpoint. @mvandergrift
 	// r.Handle("/energy/", playground.Handler("GraphQL playground", "/energy/query"))
+	//r.PathPrefix("/").Handler(playground.Handler("GraphQL playground", "/energy/query")).Methods("GET")
+
 	muxAdapter = gorillamux.New(r)
 }
 
 func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	if os.Getenv("DEBUG") == "TRUE" || os.Getenv("DEBUG") == "true" {
-		log.Println(req)
+		log.Printf("AWS Events: %+v", req)
 	}
 
 	rsp, err := muxAdapter.Proxy(req)
@@ -66,6 +68,5 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 }
 
 func main() {
-	log.Println("Starting http handler")
 	lambda.Start(Handler)
 }
