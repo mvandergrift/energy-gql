@@ -47,6 +47,12 @@ func (r *queryResolver) MealsForDay(ctx context.Context, userID int, date time.T
 	return meals, nil
 }
 
+func (r *queryResolver) AllFoods(ctx context.Context, userID *int) ([]*model.Food, error) {
+	var foods []*model.Food
+	var err = r.DB.Find(&foods).Error
+	return foods, err
+}
+
 // Meal returns generated.MealResolver implementation.
 func (r *Resolver) Meal() generated.MealResolver { return &mealResolver{r} }
 
