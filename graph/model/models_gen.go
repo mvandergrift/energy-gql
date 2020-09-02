@@ -6,6 +6,20 @@ import (
 	"time"
 )
 
+type BaseUnit struct {
+	ID       int       `json:"id"`
+	Name     string    `json:"name"`
+	UnitType *UnitType `json:"unitType"`
+}
+
+type Food struct {
+	ID       int       `json:"id"`
+	Name     string    `json:"name"`
+	Calories int       `json:"calories"`
+	ImgURL   *string   `json:"imgUrl"`
+	BaseUnit *BaseUnit `json:"baseUnit"`
+}
+
 type Meal struct {
 	ID       string      `json:"id"`
 	MealDate time.Time   `json:"mealDate"`
@@ -19,6 +33,11 @@ type MealFood struct {
 	Size     *float64 `json:"size"`
 	Calories *float64 `json:"calories"`
 	FoodImg  *string  `json:"foodImg"`
+}
+
+type UnitType struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type User struct {

@@ -7,28 +7,48 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
 scalar Time
 
 type MealFood {
-  id: Int!
-  name: String!
-  size: Float
-  calories: Float
-  foodImg: String
+    id: Int!
+    name: String!
+    size: Float
+    calories: Float
+    foodImg: String
+}
+
+type Food {
+    id: Int!
+    name: String!
+    calories: Int!
+    imgUrl: String
+    baseUnit: BaseUnit
+}
+
+type BaseUnit {
+    id: Int!
+    name: String!
+    unitType: UnitType!
+}
+
+type UnitType {
+    id: Int!
+    name: String!
 }
 
 type Meal {
-  id: ID!
-  mealDate: Time!
-  mealType: String!
-  food: [MealFood]! @goField(forceResolver: true)
+    id: ID!
+    mealDate: Time!
+    mealType: String!
+    food: [MealFood]! @goField(forceResolver: true)
 }
 
 type User {
-  id: ID!
-  username: String!
-  firstName: String!
-  lastName: String!
+    id: ID!
+    username: String!
+    firstName: String!
+    lastName: String!
 }
 
 type Query {
-  allMeals(userId: Int): [Meal]!
-  mealsForDay(userId: Int!, date: Time!): [Meal]!
+    allMeals(userId: Int): [Meal]!
+    mealsForDay(userId: Int!, date: Time!): [Meal]!
+    allFoods(userId: Int): [Food]!
 }
