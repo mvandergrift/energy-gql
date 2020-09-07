@@ -11,53 +11,67 @@ import (
 	"github.com/mvandergrift/energy-gql/graph/model"
 )
 
-func (r *mealResolver) Food(ctx context.Context, obj *model.Meal) ([]*model.MealFood, error) {
-	var food []*model.MealFood
+func (r *mutationResolver) DeleteFood(ctx context.Context, id int) (*model.Food, error) {
+	var food model.Food
+	r.DB.Where("id = ?", id).First(&food)
+	err := r.DB.Delete(&food).Error
+	return &food, err
+}
 
-	if err := r.DB.Table("meal_food").Select("meal_food.id, meal_food.size, food.calories, food.name, food.img_url as food_img").Joins("join meal ON meal.id = meal_food.meal_id").Joins("join food on food.id = meal_food.food_id").Where("meal.id = ?", obj.ID).Scan(&food).Error; err != nil {
-		return food, err
-	}
-
-	return food, nil
+func (r *mutationResolver) AddFood(ctx context.Context, food model.NewFood) (*model.Food, error) {
+	var baseUnit = new(model.Unit)
+	baseUnit.ID = *food.UnitID
+	newFood := model.Food{Name: food.Name, Calories: food.Calories, ImgURL: food.FoodImg, Unit: baseUnit, ID: 0}
+	r.DB.Preload("Unit").First(&newFood, newFood.ID)
+	result := r.DB.Create(&newFood)
+	return &newFood, result.Error
 }
 
 func (r *queryResolver) AllMeals(ctx context.Context, userID *int) ([]*model.Meal, error) {
 	var meals []*model.Meal
-	var tx = r.DB.Table("meal").Select("meal.id, meal.meal_date, meal_type.name as meal_type").Joins("join meal_type ON meal_type.id = meal.meal_type_id").Order("meal_date, meal_type_id")
+	tx := r.DB.Order("meal_date, meal_type_id")
 
 	if userID != nil {
 		tx.Where("user_id = ?", userID)
 	}
 
-	if err := tx.Scan(&meals).Error; err != nil {
-		return meals, err
-	}
+	err := tx.
+		Preload("MealType").
+		Preload("FoodEaten").
+		Preload("FoodEaten.Food").
+		Preload("FoodEaten.Food.Unit").
+		Preload("FoodEaten.Food.Unit.UnitType").
+		Find(&meals).Error
 
-	return meals, nil
+	return meals, err
 }
 
 func (r *queryResolver) MealsForDay(ctx context.Context, userID int, date time.Time) ([]*model.Meal, error) {
 	var meals []*model.Meal
-	var tx = r.DB.Table("meal").Select("meal.id, meal.meal_date, meal_type.name as meal_type").Joins("join meal_type ON meal_type.id = meal.meal_type_id").Where("user_id = ? and meal.meal_date = ?", userID, date).Order("meal_date, meal_type_id")
+	err := r.DB.
+		Preload("MealType").
+		Preload("FoodEaten").
+		Preload("FoodEaten.Food").
+		Preload("FoodEaten.Food.Unit").
+		Preload("FoodEaten.Food.Unit.UnitType").
+		Order("meal_date, meal_type_id").
+		Where("user_id = ? and meal_date = ? ", userID, date).
+		Find(&meals).Error
 
-	if err := tx.Scan(&meals).Error; err != nil {
-		return nil, err
-	}
-
-	return meals, nil
+	return meals, err
 }
 
 func (r *queryResolver) AllFoods(ctx context.Context, userID *int) ([]*model.Food, error) {
 	var foods []*model.Food
-	var err = r.DB.Find(&foods).Error
+	err := r.DB.Preload("Unit").Find(&foods).Error
 	return foods, err
 }
 
-// Meal returns generated.MealResolver implementation.
-func (r *Resolver) Meal() generated.MealResolver { return &mealResolver{r} }
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type mealResolver struct{ *Resolver }
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
