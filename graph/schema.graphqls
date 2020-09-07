@@ -6,12 +6,19 @@ directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITI
 
 scalar Time
 
-type MealFood {
+type FoodEaten {
     id: Int!
     name: String!
     size: Float
-    calories: Float
+    calories: Int
+    food: Food
+}
+
+input NewFood {
+    name: String!
+    calories: Int!
     foodImg: String
+    unitId: Int
 }
 
 type Food {
@@ -19,10 +26,10 @@ type Food {
     name: String!
     calories: Int!
     imgUrl: String
-    baseUnit: BaseUnit
+    unit: Unit
 }
 
-type BaseUnit {
+type Unit {
     id: Int!
     name: String!
     unitType: UnitType!
@@ -36,8 +43,14 @@ type UnitType {
 type Meal {
     id: ID!
     mealDate: Time!
-    mealType: String!
-    food: [MealFood]! @goField(forceResolver: true)
+    mealTypeId: Int!
+    mealType: MealType!
+    foodEaten: [FoodEaten!]!
+}
+
+type MealType {
+    id: ID!
+    name: String!
 }
 
 type User {
@@ -48,7 +61,12 @@ type User {
 }
 
 type Query {
-    allMeals(userId: Int): [Meal]!
-    mealsForDay(userId: Int!, date: Time!): [Meal]!
-    allFoods(userId: Int): [Food]!
+    allMeals(userId: Int): [Meal!]!
+    mealsForDay(userId: Int!, date: Time!): [Meal!]!
+    allFoods(userId: Int): [Food!]!
+}
+
+type Mutation {
+    deleteFood(id: Int!): Food
+    addFood(food: NewFood!): Food
 }
