@@ -9,9 +9,8 @@ scalar Time
 type FoodEaten {
     id: Int!
     name: String!
-    size: Float
-    calories: Int
-    food: Food
+    size: Float!
+    food: Food!
 }
 
 input NewFood {
@@ -41,7 +40,7 @@ type UnitType {
 }
 
 type Meal {
-    id: ID!
+    id: Int!
     mealDate: Time!
     mealTypeId: Int!
     mealType: MealType!
@@ -49,12 +48,12 @@ type Meal {
 }
 
 type MealType {
-    id: ID!
+    id: Int!
     name: String!
 }
 
 type User {
-    id: ID!
+    id: Int!
     username: String!
     firstName: String!
     lastName: String!

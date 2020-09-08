@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/mvandergrift/energy-gql/graph/generated"
@@ -19,11 +20,11 @@ func (r *mutationResolver) DeleteFood(ctx context.Context, id int) (*model.Food,
 }
 
 func (r *mutationResolver) AddFood(ctx context.Context, food model.NewFood) (*model.Food, error) {
-	var baseUnit = new(model.Unit)
-	baseUnit.ID = *food.UnitID
-	newFood := model.Food{Name: food.Name, Calories: food.Calories, ImgURL: food.FoodImg, Unit: baseUnit, ID: 0}
-	r.DB.Preload("Unit").First(&newFood, newFood.ID)
-	result := r.DB.Create(&newFood)
+	newFood := model.Food{Name: food.Name, Calories: food.Calories, ImgURL: food.FoodImg, UnitID: *food.UnitID}
+	result := r.DB.Omit("ID").Create(&newFood)
+	log.Println(&newFood)
+	r.DB.Preload("Unit").Preload("Unit.UnitType").First(&newFood, result.Value)
+
 	return &newFood, result.Error
 }
 
