@@ -53,11 +53,10 @@ type ComplexityRoot struct {
 	}
 
 	FoodEaten struct {
-		Calories func(childComplexity int) int
-		Food     func(childComplexity int) int
-		ID       func(childComplexity int) int
-		Name     func(childComplexity int) int
-		Size     func(childComplexity int) int
+		Food func(childComplexity int) int
+		ID   func(childComplexity int) int
+		Name func(childComplexity int) int
+		Size func(childComplexity int) int
 	}
 
 	Meal struct {
@@ -162,13 +161,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Food.Unit(childComplexity), true
-
-	case "FoodEaten.calories":
-		if e.complexity.FoodEaten.Calories == nil {
-			break
-		}
-
-		return e.complexity.FoodEaten.Calories(childComplexity), true
 
 	case "FoodEaten.food":
 		if e.complexity.FoodEaten.Food == nil {
@@ -445,9 +437,8 @@ scalar Time
 type FoodEaten {
     id: Int!
     name: String!
-    size: Float
-    calories: Int
-    food: Food
+    size: Float!
+    food: Food!
 }
 
 input NewFood {
@@ -477,7 +468,7 @@ type UnitType {
 }
 
 type Meal {
-    id: ID!
+    id: Int!
     mealDate: Time!
     mealTypeId: Int!
     mealType: MealType!
@@ -485,12 +476,12 @@ type Meal {
 }
 
 type MealType {
-    id: ID!
+    id: Int!
     name: String!
 }
 
 type User {
-    id: ID!
+    id: Int!
     username: String!
     firstName: String!
     lastName: String!
@@ -907,42 +898,14 @@ func (ec *executionContext) _FoodEaten_size(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _FoodEaten_calories(ctx context.Context, field graphql.CollectedField, obj *model.FoodEaten) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "FoodEaten",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Calories, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*int)
-	fc.Result = res
-	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+	return ec.marshalNFloat2ᚖfloat64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _FoodEaten_food(ctx context.Context, field graphql.CollectedField, obj *model.FoodEaten) (ret graphql.Marshaler) {
@@ -969,11 +932,14 @@ func (ec *executionContext) _FoodEaten_food(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Food)
 	fc.Result = res
-	return ec.marshalOFood2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐFood(ctx, field.Selections, res)
+	return ec.marshalNFood2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐFood(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Meal_id(ctx context.Context, field graphql.CollectedField, obj *model.Meal) (ret graphql.Marshaler) {
@@ -1005,9 +971,9 @@ func (ec *executionContext) _Meal_id(ctx context.Context, field graphql.Collecte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Meal_mealDate(ctx context.Context, field graphql.CollectedField, obj *model.Meal) (ret graphql.Marshaler) {
@@ -1175,9 +1141,9 @@ func (ec *executionContext) _MealType_id(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _MealType_name(ctx context.Context, field graphql.CollectedField, obj *model.MealType) (ret graphql.Marshaler) {
@@ -1681,9 +1647,9 @@ func (ec *executionContext) _User_id(ctx context.Context, field graphql.Collecte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_username(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -2959,10 +2925,14 @@ func (ec *executionContext) _FoodEaten(ctx context.Context, sel ast.SelectionSet
 			}
 		case "size":
 			out.Values[i] = ec._FoodEaten_size(ctx, field, obj)
-		case "calories":
-			out.Values[i] = ec._FoodEaten_calories(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "food":
 			out.Values[i] = ec._FoodEaten_food(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3526,6 +3496,27 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
+	res, err := graphql.UnmarshalFloat(v)
+	return &res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := graphql.MarshalFloat(*v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNFood2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐFoodᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Food) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -3618,21 +3609,6 @@ func (ec *executionContext) marshalNFoodEaten2ᚖgithubᚗcomᚋmvandergriftᚋe
 		return graphql.Null
 	}
 	return ec._FoodEaten(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
-	res, err := graphql.UnmarshalID(v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	res := graphql.MarshalID(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-	}
-	return res
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
@@ -4003,21 +3979,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
-}
-
-func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := graphql.UnmarshalFloat(v)
-	return &res, graphql.WrapErrorWithInputPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return graphql.MarshalFloat(*v)
 }
 
 func (ec *executionContext) marshalOFood2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐFood(ctx context.Context, sel ast.SelectionSet, v *model.Food) graphql.Marshaler {

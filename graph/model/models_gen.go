@@ -7,7 +7,7 @@ import (
 )
 
 type Meal struct {
-	ID         string       `json:"id"`
+	ID         int          `json:"id"`
 	MealDate   time.Time    `json:"mealDate"`
 	MealTypeID int          `json:"mealTypeId"`
 	MealType   *MealType    `json:"mealType"`
@@ -15,7 +15,7 @@ type Meal struct {
 }
 
 type MealType struct {
-	ID   string `json:"id"`
+	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -32,7 +32,7 @@ type UnitType struct {
 }
 
 type User struct {
-	ID        string `json:"id"`
+	ID        int    `json:"id"`
 	Username  string `json:"username"`
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
