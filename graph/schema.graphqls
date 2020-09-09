@@ -63,6 +63,7 @@ type Query {
     allMeals(userId: Int): [Meal!]!
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
     allFoods(userId: Int): [Food!]!
+    allUnits: [Unit!]!
 }
 
 type Mutation {

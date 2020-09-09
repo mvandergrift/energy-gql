@@ -64,8 +64,14 @@ func (r *queryResolver) MealsForDay(ctx context.Context, userID int, date time.T
 
 func (r *queryResolver) AllFoods(ctx context.Context, userID *int) ([]*model.Food, error) {
 	var foods []*model.Food
-	err := r.DB.Preload("Unit").Preload("Unit.UnitType").Find(&foods).Error
+	err := r.DB.Preload("Unit").Preload("Unit.UnitType").Order("unit_type_id, name").Find(&foods).Error
 	return foods, err
+}
+
+func (r *queryResolver) AllUnits(ctx context.Context) ([]*model.Unit, error) {
+	var units []*model.Unit
+	err := r.DB.Preload("UnitType").Find(&units).Error
+	return units, err
 }
 
 // Mutation returns generated.MutationResolver implementation.

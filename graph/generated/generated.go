@@ -80,6 +80,7 @@ type ComplexityRoot struct {
 	Query struct {
 		AllFoods    func(childComplexity int, userID *int) int
 		AllMeals    func(childComplexity int, userID *int) int
+		AllUnits    func(childComplexity int) int
 		MealsForDay func(childComplexity int, userID int, date time.Time) int
 	}
 
@@ -110,6 +111,7 @@ type QueryResolver interface {
 	AllMeals(ctx context.Context, userID *int) ([]*model.Meal, error)
 	MealsForDay(ctx context.Context, userID int, date time.Time) ([]*model.Meal, error)
 	AllFoods(ctx context.Context, userID *int) ([]*model.Food, error)
+	AllUnits(ctx context.Context) ([]*model.Unit, error)
 }
 
 type executableSchema struct {
@@ -286,6 +288,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.AllMeals(childComplexity, args["userId"].(*int)), true
+
+	case "Query.allUnits":
+		if e.complexity.Query.AllUnits == nil {
+			break
+		}
+
+		return e.complexity.Query.AllUnits(childComplexity), true
 
 	case "Query.mealsForDay":
 		if e.complexity.Query.MealsForDay == nil {
@@ -491,6 +500,7 @@ type Query {
     allMeals(userId: Int): [Meal!]!
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
     allFoods(userId: Int): [Food!]!
+    allUnits: [Unit!]!
 }
 
 type Mutation {
@@ -1377,6 +1387,40 @@ func (ec *executionContext) _Query_allFoods(ctx context.Context, field graphql.C
 	res := resTmp.([]*model.Food)
 	fc.Result = res
 	return ec.marshalNFood2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐFoodᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_allUnits(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().AllUnits(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Unit)
+	fc.Result = res
+	return ec.marshalNUnit2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐUnitᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3110,6 +3154,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "allUnits":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_allUnits(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -3716,6 +3774,53 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNUnit2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐUnitᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Unit) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNUnit2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐUnit(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNUnit2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐUnit(ctx context.Context, sel ast.SelectionSet, v *model.Unit) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Unit(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNUnitType2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐUnitType(ctx context.Context, sel ast.SelectionSet, v *model.UnitType) graphql.Marshaler {
