@@ -64,7 +64,7 @@ func (r *queryResolver) MealsForDay(ctx context.Context, userID int, date time.T
 
 func (r *queryResolver) AllFoods(ctx context.Context, userID *int) ([]*model.Food, error) {
 	var foods []*model.Food
-	err := r.DB.Preload("Unit").Find(&foods).Error
+	err := r.DB.Preload("Unit").Preload("Unit.UnitType").Find(&foods).Error
 	return foods, err
 }
 
