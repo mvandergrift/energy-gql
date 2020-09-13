@@ -8,8 +8,9 @@ type FoodEaten struct {
 	Size      *float64 `json:"size"`
 	Calories  *int     `json:"calories"`
 	Food      *Food    `json:"food"`
-	FoodID    int
-	MealID    int
+	FoodID    int      `gorm:"primary_key"`
+	MealID    int      `gorm:"primary_key"`
+	UnitID    int
 	CreatedAt *time.Time
 	UpdatedAt *time.Time
 	DeletedAt *time.Time
