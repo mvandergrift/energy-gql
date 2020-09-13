@@ -65,6 +65,7 @@ type ComplexityRoot struct {
 		MealDate   func(childComplexity int) int
 		MealType   func(childComplexity int) int
 		MealTypeID func(childComplexity int) int
+		User       func(childComplexity int) int
 	}
 
 	MealType struct {
@@ -73,8 +74,10 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddFood    func(childComplexity int, food model.NewFood) int
-		DeleteFood func(childComplexity int, id int) int
+		AddFood        func(childComplexity int, food model.NewFood) int
+		AddFoodEaten   func(childComplexity int, foodEaten model.NewFoodEaten) int
+		AddMealForaDay func(childComplexity int, meal model.NewMeal) int
+		DeleteFood     func(childComplexity int, id int) int
 	}
 
 	Query struct {
@@ -106,6 +109,8 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	DeleteFood(ctx context.Context, id int) (*model.Food, error)
 	AddFood(ctx context.Context, food model.NewFood) (*model.Food, error)
+	AddFoodEaten(ctx context.Context, foodEaten model.NewFoodEaten) (*model.FoodEaten, error)
+	AddMealForaDay(ctx context.Context, meal model.NewMeal) (*model.Meal, error)
 }
 type QueryResolver interface {
 	AllMeals(ctx context.Context, userID *int) ([]*model.Meal, error)
@@ -227,6 +232,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Meal.MealTypeID(childComplexity), true
 
+	case "Meal.user":
+		if e.complexity.Meal.User == nil {
+			break
+		}
+
+		return e.complexity.Meal.User(childComplexity), true
+
 	case "MealType.id":
 		if e.complexity.MealType.ID == nil {
 			break
@@ -252,6 +264,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.AddFood(childComplexity, args["food"].(model.NewFood)), true
+
+	case "Mutation.addFoodEaten":
+		if e.complexity.Mutation.AddFoodEaten == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addFoodEaten_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddFoodEaten(childComplexity, args["foodEaten"].(model.NewFoodEaten)), true
+
+	case "Mutation.addMealForaDay":
+		if e.complexity.Mutation.AddMealForaDay == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addMealForaDay_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddMealForaDay(childComplexity, args["meal"].(model.NewMeal)), true
 
 	case "Mutation.deleteFood":
 		if e.complexity.Mutation.DeleteFood == nil {
@@ -450,6 +486,13 @@ type FoodEaten {
     food: Food!
 }
 
+input NewFoodEaten {
+    mealId: Int!
+    foodId: Int!
+    size: Float!
+    unitId: Int!
+}
+
 input NewFood {
     name: String!
     calories: Int!
@@ -481,7 +524,15 @@ type Meal {
     mealDate: Time!
     mealTypeId: Int!
     mealType: MealType!
+    user: User    
     foodEaten: [FoodEaten!]!
+}
+
+input NewMeal {
+    id: Int
+    mealDate: Time!
+    mealTypeId: Int!
+    userId: Int!
 }
 
 type MealType {
@@ -500,12 +551,15 @@ type Query {
     allMeals(userId: Int): [Meal!]!
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
     allFoods(userId: Int): [Food!]!
-    allUnits: [Unit!]!
+    allUnits: [Unit!]!    
+    
 }
 
 type Mutation {
     deleteFood(id: Int!): Food
     addFood(food: NewFood!): Food
+    addFoodEaten(foodEaten: NewFoodEaten!): FoodEaten    
+    addMealForaDay(meal: NewMeal!): Meal!
 }
 `, BuiltIn: false},
 }
@@ -514,6 +568,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_addFoodEaten_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.NewFoodEaten
+	if tmp, ok := rawArgs["foodEaten"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("foodEaten"))
+		arg0, err = ec.unmarshalNNewFoodEaten2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewFoodEaten(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["foodEaten"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_addFood_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -527,6 +596,21 @@ func (ec *executionContext) field_Mutation_addFood_args(ctx context.Context, raw
 		}
 	}
 	args["food"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addMealForaDay_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.NewMeal
+	if tmp, ok := rawArgs["meal"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("meal"))
+		arg0, err = ec.unmarshalNNewMeal2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewMeal(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["meal"] = arg0
 	return args, nil
 }
 
@@ -1088,6 +1172,37 @@ func (ec *executionContext) _Meal_mealType(ctx context.Context, field graphql.Co
 	return ec.marshalNMealType2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐMealType(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Meal_user(ctx context.Context, field graphql.CollectedField, obj *model.Meal) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Meal",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Meal_foodEaten(ctx context.Context, field graphql.CollectedField, obj *model.Meal) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1264,6 +1379,85 @@ func (ec *executionContext) _Mutation_addFood(ctx context.Context, field graphql
 	res := resTmp.(*model.Food)
 	fc.Result = res
 	return ec.marshalOFood2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐFood(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addFoodEaten(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addFoodEaten_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddFoodEaten(rctx, args["foodEaten"].(model.NewFoodEaten))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.FoodEaten)
+	fc.Result = res
+	return ec.marshalOFoodEaten2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐFoodEaten(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addMealForaDay(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addMealForaDay_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddMealForaDay(rctx, args["meal"].(model.NewMeal))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Meal)
+	fc.Result = res
+	return ec.marshalNMeal2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐMeal(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_allMeals(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2897,6 +3091,94 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputNewFoodEaten(ctx context.Context, obj interface{}) (model.NewFoodEaten, error) {
+	var it model.NewFoodEaten
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "mealId":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("mealId"))
+			it.MealID, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "foodId":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("foodId"))
+			it.FoodID, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "size":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("size"))
+			it.Size, err = ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "unitId":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("unitId"))
+			it.UnitID, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputNewMeal(ctx context.Context, obj interface{}) (model.NewMeal, error) {
+	var it model.NewMeal
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+			it.ID, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "mealDate":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("mealDate"))
+			it.MealDate, err = ec.unmarshalNTime2timeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "mealTypeId":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("mealTypeId"))
+			it.MealTypeID, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "userId":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -3019,6 +3301,8 @@ func (ec *executionContext) _Meal(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "user":
+			out.Values[i] = ec._Meal_user(ctx, field, obj)
 		case "foodEaten":
 			out.Values[i] = ec._Meal_foodEaten(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3086,6 +3370,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_deleteFood(ctx, field)
 		case "addFood":
 			out.Values[i] = ec._Mutation_addFood(ctx, field)
+		case "addFoodEaten":
+			out.Values[i] = ec._Mutation_addFoodEaten(ctx, field)
+		case "addMealForaDay":
+			out.Values[i] = ec._Mutation_addMealForaDay(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3554,6 +3845,21 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
+	res, err := graphql.UnmarshalFloat(v)
+	return res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	res := graphql.MarshalFloat(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
 	res, err := graphql.UnmarshalFloat(v)
 	return &res, graphql.WrapErrorWithInputPath(ctx, err)
@@ -3684,6 +3990,10 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) marshalNMeal2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐMeal(ctx context.Context, sel ast.SelectionSet, v model.Meal) graphql.Marshaler {
+	return ec._Meal(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNMeal2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐMealᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Meal) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -3743,6 +4053,16 @@ func (ec *executionContext) marshalNMealType2ᚖgithubᚗcomᚋmvandergriftᚋen
 
 func (ec *executionContext) unmarshalNNewFood2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewFood(ctx context.Context, v interface{}) (model.NewFood, error) {
 	res, err := ec.unmarshalInputNewFood(ctx, v)
+	return res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewFoodEaten2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewFoodEaten(ctx context.Context, v interface{}) (model.NewFoodEaten, error) {
+	res, err := ec.unmarshalInputNewFoodEaten(ctx, v)
+	return res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewMeal2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewMeal(ctx context.Context, v interface{}) (model.NewMeal, error) {
+	res, err := ec.unmarshalInputNewMeal(ctx, v)
 	return res, graphql.WrapErrorWithInputPath(ctx, err)
 }
 
@@ -4093,6 +4413,13 @@ func (ec *executionContext) marshalOFood2ᚖgithubᚗcomᚋmvandergriftᚋenergy
 	return ec._Food(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOFoodEaten2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐFoodEaten(ctx context.Context, sel ast.SelectionSet, v *model.FoodEaten) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._FoodEaten(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
 	if v == nil {
 		return nil, nil
@@ -4137,6 +4464,13 @@ func (ec *executionContext) marshalOUnit2ᚖgithubᚗcomᚋmvandergriftᚋenergy
 		return graphql.Null
 	}
 	return ec._Unit(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._User(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

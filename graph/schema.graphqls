@@ -13,6 +13,13 @@ type FoodEaten {
     food: Food!
 }
 
+input NewFoodEaten {
+    mealId: Int!
+    foodId: Int!
+    size: Float!
+    unitId: Int!
+}
+
 input NewFood {
     name: String!
     calories: Int!
@@ -44,7 +51,15 @@ type Meal {
     mealDate: Time!
     mealTypeId: Int!
     mealType: MealType!
+    user: User    
     foodEaten: [FoodEaten!]!
+}
+
+input NewMeal {
+    id: Int
+    mealDate: Time!
+    mealTypeId: Int!
+    userId: Int!
 }
 
 type MealType {
@@ -63,10 +78,13 @@ type Query {
     allMeals(userId: Int): [Meal!]!
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
     allFoods(userId: Int): [Food!]!
-    allUnits: [Unit!]!
+    allUnits: [Unit!]!    
+    
 }
 
 type Mutation {
     deleteFood(id: Int!): Food
     addFood(food: NewFood!): Food
+    addFoodEaten(foodEaten: NewFoodEaten!): FoodEaten    
+    addMealForaDay(meal: NewMeal!): Meal!
 }

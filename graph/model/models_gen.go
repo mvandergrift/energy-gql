@@ -11,6 +11,7 @@ type Meal struct {
 	MealDate   time.Time    `json:"mealDate"`
 	MealTypeID int          `json:"mealTypeId"`
 	MealType   *MealType    `json:"mealType"`
+	User       *User        `json:"user"`
 	FoodEaten  []*FoodEaten `json:"foodEaten"`
 }
 
@@ -24,6 +25,13 @@ type NewFood struct {
 	Calories int     `json:"calories"`
 	FoodImg  *string `json:"foodImg"`
 	UnitID   *int    `json:"unitId"`
+}
+
+type NewFoodEaten struct {
+	MealID int     `json:"mealId"`
+	FoodID int     `json:"foodId"`
+	Size   float64 `json:"size"`
+	UnitID int     `json:"unitId"`
 }
 
 type UnitType struct {
