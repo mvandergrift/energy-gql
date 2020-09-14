@@ -74,10 +74,10 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddFood        func(childComplexity int, food model.NewFood) int
-		AddFoodEaten   func(childComplexity int, foodEaten model.NewFoodEaten) int
-		AddMealForaDay func(childComplexity int, meal model.NewMeal) int
-		DeleteFood     func(childComplexity int, id int) int
+		AddFood       func(childComplexity int, food model.NewFood) int
+		AddFoodEaten  func(childComplexity int, foodEaten model.NewFoodEaten) int
+		AddMealForDay func(childComplexity int, meal model.NewMeal) int
+		DeleteFood    func(childComplexity int, id int) int
 	}
 
 	Query struct {
@@ -110,7 +110,7 @@ type MutationResolver interface {
 	DeleteFood(ctx context.Context, id int) (*model.Food, error)
 	AddFood(ctx context.Context, food model.NewFood) (*model.Food, error)
 	AddFoodEaten(ctx context.Context, foodEaten model.NewFoodEaten) (*model.FoodEaten, error)
-	AddMealForaDay(ctx context.Context, meal model.NewMeal) (*model.Meal, error)
+	AddMealForDay(ctx context.Context, meal model.NewMeal) (*model.Meal, error)
 }
 type QueryResolver interface {
 	AllMeals(ctx context.Context, userID *int) ([]*model.Meal, error)
@@ -277,17 +277,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddFoodEaten(childComplexity, args["foodEaten"].(model.NewFoodEaten)), true
 
-	case "Mutation.addMealForaDay":
-		if e.complexity.Mutation.AddMealForaDay == nil {
+	case "Mutation.addMealForDay":
+		if e.complexity.Mutation.AddMealForDay == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_addMealForaDay_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_addMealForDay_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddMealForaDay(childComplexity, args["meal"].(model.NewMeal)), true
+		return e.complexity.Mutation.AddMealForDay(childComplexity, args["meal"].(model.NewMeal)), true
 
 	case "Mutation.deleteFood":
 		if e.complexity.Mutation.DeleteFood == nil {
@@ -524,12 +524,11 @@ type Meal {
     mealDate: Time!
     mealTypeId: Int!
     mealType: MealType!
-    user: User    
+    user: User
     foodEaten: [FoodEaten!]!
 }
 
 input NewMeal {
-    id: Int
     mealDate: Time!
     mealTypeId: Int!
     userId: Int!
@@ -551,15 +550,14 @@ type Query {
     allMeals(userId: Int): [Meal!]!
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
     allFoods(userId: Int): [Food!]!
-    allUnits: [Unit!]!    
-    
+    allUnits: [Unit!]!
 }
 
 type Mutation {
     deleteFood(id: Int!): Food
     addFood(food: NewFood!): Food
-    addFoodEaten(foodEaten: NewFoodEaten!): FoodEaten    
-    addMealForaDay(meal: NewMeal!): Meal!
+    addFoodEaten(foodEaten: NewFoodEaten!): FoodEaten
+    addMealForDay(meal: NewMeal!): Meal!
 }
 `, BuiltIn: false},
 }
@@ -599,7 +597,7 @@ func (ec *executionContext) field_Mutation_addFood_args(ctx context.Context, raw
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_addMealForaDay_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_addMealForDay_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 model.NewMeal
@@ -1419,7 +1417,7 @@ func (ec *executionContext) _Mutation_addFoodEaten(ctx context.Context, field gr
 	return ec.marshalOFoodEaten2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐFoodEaten(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_addMealForaDay(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_addMealForDay(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1435,7 +1433,7 @@ func (ec *executionContext) _Mutation_addMealForaDay(ctx context.Context, field 
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_addMealForaDay_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_addMealForDay_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1443,7 +1441,7 @@ func (ec *executionContext) _Mutation_addMealForaDay(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddMealForaDay(rctx, args["meal"].(model.NewMeal))
+		return ec.resolvers.Mutation().AddMealForDay(rctx, args["meal"].(model.NewMeal))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3141,14 +3139,6 @@ func (ec *executionContext) unmarshalInputNewMeal(ctx context.Context, obj inter
 
 	for k, v := range asMap {
 		switch k {
-		case "id":
-			var err error
-
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
-			it.ID, err = ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "mealDate":
 			var err error
 
@@ -3372,8 +3362,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_addFood(ctx, field)
 		case "addFoodEaten":
 			out.Values[i] = ec._Mutation_addFoodEaten(ctx, field)
-		case "addMealForaDay":
-			out.Values[i] = ec._Mutation_addMealForaDay(ctx, field)
+		case "addMealForDay":
+			out.Values[i] = ec._Mutation_addMealForDay(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

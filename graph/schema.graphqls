@@ -51,12 +51,11 @@ type Meal {
     mealDate: Time!
     mealTypeId: Int!
     mealType: MealType!
-    user: User    
+    user: User
     foodEaten: [FoodEaten!]!
 }
 
 input NewMeal {
-    id: Int
     mealDate: Time!
     mealTypeId: Int!
     userId: Int!
@@ -78,13 +77,12 @@ type Query {
     allMeals(userId: Int): [Meal!]!
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
     allFoods(userId: Int): [Food!]!
-    allUnits: [Unit!]!    
-    
+    allUnits: [Unit!]!
 }
 
 type Mutation {
     deleteFood(id: Int!): Food
     addFood(food: NewFood!): Food
-    addFoodEaten(foodEaten: NewFoodEaten!): FoodEaten    
-    addMealForaDay(meal: NewMeal!): Meal!
+    addFoodEaten(foodEaten: NewFoodEaten!): FoodEaten
+    addMealForDay(meal: NewMeal!): Meal!
 }
