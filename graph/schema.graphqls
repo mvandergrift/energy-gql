@@ -84,5 +84,6 @@ type Mutation {
     deleteFood(id: Int!): Food
     addFood(food: NewFood!): Food
     addFoodEaten(foodEaten: NewFoodEaten!): FoodEaten
+    deleteFoodEaten(id: Int!): FoodEaten
     addMealForDay(meal: NewMeal!): Meal!
 }
