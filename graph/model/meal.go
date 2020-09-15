@@ -11,4 +11,7 @@ type Meal struct {
 	MealType   *MealType    `json:"mealType"`
 	User       *User        `json:"user"`
 	FoodEaten  []*FoodEaten `json:"foodEaten"`
+	CreatedAt  *time.Time
+	UpdatedAt  *time.Time
+	DeletedAt  *time.Time
 }

@@ -51,6 +51,12 @@ func (r *mutationResolver) AddFoodEaten(ctx context.Context, foodEaten model.New
 	return &newFoodEaten, err
 }
 
+func (r *mutationResolver) DeleteFoodEaten(ctx context.Context, id int) (*model.FoodEaten, error) {
+	var foodEaten model.FoodEaten
+	err := r.DB.Delete(&foodEaten, "id = ?", id).Error
+	return &foodEaten, err
+}
+
 func (r *mutationResolver) AddMealForDay(ctx context.Context, meal model.NewMeal) (*model.Meal, error) {
 	var d model.Meal
 
