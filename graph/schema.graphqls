@@ -31,6 +31,12 @@ type Food {
     id: Int!
     name: String!
     calories: Int!
+    fat: Float
+    satFat: Float
+    carbs: Float
+    fiber: Float
+    sugar: Float
+    protein: Float
     imgUrl: String
     unit: Unit
 }
