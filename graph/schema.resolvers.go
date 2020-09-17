@@ -116,6 +116,22 @@ func (r *queryResolver) AllUnits(ctx context.Context) ([]*model.Unit, error) {
 	return units, err
 }
 
+func (r *queryResolver) UnitsForFood(ctx context.Context, foodID *int) ([]*model.Unit, error) {
+	var (
+		food  model.Food
+		units []*model.Unit
+	)
+
+	if err := r.DB.Preload("Unit").Preload("Unit.UnitType").First(&food, "id = ?", foodID).Error; err != nil {
+		return units, err
+	}
+
+	log.Printf("food %+v", food)
+	units = append(units, food.Unit)
+	log.Printf("units %+v", units)
+	return units, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
@@ -131,9 +147,12 @@ type queryResolver struct{ *Resolver }
 //  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
 //    it when you're done.
 //  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *mutationResolver) AddMealForaDay(ctx context.Context, meal model.NewMeal) (*model.Meal, error) {
-	result := r.DB.Create(&meal)
-	var d model.Meal
-	r.DB.Preload("MealType").First(&d, "meal_date = ? and meal_type_id = ? and user_id = ?", meal.MealDate, meal.MealTypeID, meal.UserID)
-	return &d, result.Error
-}
+// func (r *queryResolver) UnitsFodFood(ctx context.Context) ([]*model.Unit, error) {
+
+// }
+// func (r *mutationResolver) AddMealForaDay(ctx context.Context, meal model.NewMeal) (*model.Meal, error) {
+// 	result := r.DB.Create(&meal)
+// 	var d model.Meal
+// 	r.DB.Preload("MealType").First(&d, "meal_date = ? and meal_type_id = ? and user_id = ?", meal.MealDate, meal.MealTypeID, meal.UserID)
+// 	return &d, result.Error
+// }
