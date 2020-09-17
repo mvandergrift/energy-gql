@@ -82,10 +82,11 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AllFoods    func(childComplexity int, userID *int) int
-		AllMeals    func(childComplexity int, userID *int) int
-		AllUnits    func(childComplexity int) int
-		MealsForDay func(childComplexity int, userID int, date time.Time) int
+		AllFoods     func(childComplexity int, userID *int) int
+		AllMeals     func(childComplexity int, userID *int) int
+		AllUnits     func(childComplexity int) int
+		MealsForDay  func(childComplexity int, userID int, date time.Time) int
+		UnitsForFood func(childComplexity int, foodID *int) int
 	}
 
 	Unit struct {
@@ -119,6 +120,7 @@ type QueryResolver interface {
 	MealsForDay(ctx context.Context, userID int, date time.Time) ([]*model.Meal, error)
 	AllFoods(ctx context.Context, userID *int) ([]*model.Food, error)
 	AllUnits(ctx context.Context) ([]*model.Unit, error)
+	UnitsForFood(ctx context.Context, foodID *int) ([]*model.Unit, error)
 }
 
 type executableSchema struct {
@@ -358,6 +360,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.MealsForDay(childComplexity, args["userId"].(int), args["date"].(time.Time)), true
 
+	case "Query.unitsForFood":
+		if e.complexity.Query.UnitsForFood == nil {
+			break
+		}
+
+		args, err := ec.field_Query_unitsForFood_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UnitsForFood(childComplexity, args["foodId"].(*int)), true
+
 	case "Unit.id":
 		if e.complexity.Unit.ID == nil {
 			break
@@ -565,6 +579,7 @@ type Query {
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
     allFoods(userId: Int): [Food!]!
     allUnits: [Unit!]!
+    unitsForFood(foodId: Int): [Unit!]!
 }
 
 type Mutation {
@@ -723,6 +738,21 @@ func (ec *executionContext) field_Query_mealsForDay_args(ctx context.Context, ra
 		}
 	}
 	args["date"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_unitsForFood_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["foodId"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("foodId"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["foodId"] = arg0
 	return args, nil
 }
 
@@ -1667,6 +1697,47 @@ func (ec *executionContext) _Query_allUnits(ctx context.Context, field graphql.C
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().AllUnits(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Unit)
+	fc.Result = res
+	return ec.marshalNUnit2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐUnitᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_unitsForFood(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_unitsForFood_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().UnitsForFood(rctx, args["foodId"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3514,6 +3585,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_allUnits(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "unitsForFood":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_unitsForFood(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
