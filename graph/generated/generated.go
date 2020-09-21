@@ -54,6 +54,7 @@ type ComplexityRoot struct {
 		Name     func(childComplexity int) int
 		Protein  func(childComplexity int) int
 		SatFat   func(childComplexity int) int
+		Sodium   func(childComplexity int) int
 		Sugar    func(childComplexity int) int
 		Unit     func(childComplexity int) int
 	}
@@ -206,6 +207,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Food.SatFat(childComplexity), true
+
+	case "Food.sodium":
+		if e.complexity.Food.Sodium == nil {
+			break
+		}
+
+		return e.complexity.Food.Sodium(childComplexity), true
 
 	case "Food.sugar":
 		if e.complexity.Food.Sugar == nil {
@@ -585,6 +593,7 @@ type Food {
     carbs: Float
     fiber: Float
     sugar: Float
+    sodium: Float
     protein: Float
     imgUrl: String
     unit: Unit
@@ -1092,6 +1101,37 @@ func (ec *executionContext) _Food_sugar(ctx context.Context, field graphql.Colle
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Sugar, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*float64)
+	fc.Result = res
+	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Food_sodium(ctx context.Context, field graphql.CollectedField, obj *model.Food) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Food",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Sodium, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3592,6 +3632,8 @@ func (ec *executionContext) _Food(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Food_fiber(ctx, field, obj)
 		case "sugar":
 			out.Values[i] = ec._Food_sugar(ctx, field, obj)
+		case "sodium":
+			out.Values[i] = ec._Food_sodium(ctx, field, obj)
 		case "protein":
 			out.Values[i] = ec._Food_protein(ctx, field, obj)
 		case "imgUrl":

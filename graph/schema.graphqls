@@ -36,6 +36,7 @@ type Food {
     carbs: Float
     fiber: Float
     sugar: Float
+    sodium: Float
     protein: Float
     imgUrl: String
     unit: Unit
