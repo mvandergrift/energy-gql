@@ -24,6 +24,14 @@ input NewFood {
     name: String!
     calories: Int!
     foodImg: String
+    fat: Float
+    satFat: Float
+    carbs: Float
+    fiber: Float
+    sugar: Float
+    sodium: Float
+    protein: Float
+    imgUrl: String
     unitId: Int
 }
 
