@@ -8,10 +8,18 @@ type MealType struct {
 }
 
 type NewFood struct {
-	Name     string  `json:"name"`
-	Calories int     `json:"calories"`
-	FoodImg  *string `json:"foodImg"`
-	UnitID   *int    `json:"unitId"`
+	Name     string   `json:"name"`
+	Calories int      `json:"calories"`
+	FoodImg  *string  `json:"foodImg"`
+	Fat      *float64 `json:"fat"`
+	SatFat   *float64 `json:"satFat"`
+	Carbs    *float64 `json:"carbs"`
+	Fiber    *float64 `json:"fiber"`
+	Sugar    *float64 `json:"sugar"`
+	Sodium   *float64 `json:"sodium"`
+	Protein  *float64 `json:"protein"`
+	ImgURL   *string  `json:"imgUrl"`
+	UnitID   *int     `json:"unitId"`
 }
 
 type NewFoodEaten struct {
