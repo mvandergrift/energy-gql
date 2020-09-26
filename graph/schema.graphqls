@@ -33,6 +33,7 @@ input NewFood {
     protein: Float
     imgUrl: String
     unitId: Int
+    id: Int
 }
 
 type Food {
