@@ -590,6 +590,7 @@ input NewFood {
     protein: Float
     imgUrl: String
     unitId: Int
+    id: Int
 }
 
 type Food {
@@ -3571,6 +3572,14 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 
 			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("unitId"))
 			it.UnitID, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "id":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+			it.ID, err = ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
 			}

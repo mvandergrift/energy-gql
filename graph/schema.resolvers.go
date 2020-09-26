@@ -8,6 +8,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/jinzhu/gorm"
 	"github.com/mvandergrift/energy-gql/graph/generated"
 	"github.com/mvandergrift/energy-gql/graph/model"
 )
@@ -21,10 +22,18 @@ func (r *mutationResolver) DeleteFood(ctx context.Context, id int) (*model.Food,
 
 func (r *mutationResolver) AddFood(ctx context.Context, food model.NewFood) (*model.Food, error) {
 	newFood := model.Food{Name: food.Name, Calories: food.Calories, ImgURL: food.FoodImg, UnitID: *food.UnitID}
-	result := r.DB.Omit("ID").Create(&newFood)
-	log.Println(&newFood)
-	r.DB.Preload("Unit").Preload("Unit.UnitType").First(&newFood, result.Value)
 
+	var result *gorm.DB
+
+	if food.ID == nil {
+		result = r.DB.Omit("ID").Create(&newFood)
+	} else {
+		newFood.ID = *food.ID
+		result = r.DB.Save(newFood)
+	}
+
+	//log.Println(&newFood)
+	r.DB.Preload("Unit").Preload("Unit.UnitType").First(&newFood, result.Value)
 	return &newFood, result.Error
 }
 

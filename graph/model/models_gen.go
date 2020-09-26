@@ -20,6 +20,7 @@ type NewFood struct {
 	Protein  *float64 `json:"protein"`
 	ImgURL   *string  `json:"imgUrl"`
 	UnitID   *int     `json:"unitId"`
+	ID       *int     `json:"id"`
 }
 
 type NewFoodEaten struct {
