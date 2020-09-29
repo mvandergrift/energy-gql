@@ -89,18 +89,36 @@ type User {
     lastName: String!
 }
 
+type Note {
+    id: Int!
+    noteDate: Time!
+    subject: String!
+    content: String!
+}
+
+input NewNote {
+    id: Int
+    noteDate: Time!
+    subject: String!
+    content: String!
+    userId: Int!
+}
+
 type Query {
     allMeals(userId: Int): [Meal!]!
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
     allFoods(userId: Int): [Food!]!
     allUnits: [Unit!]!
     unitsForFood(foodId: Int): [Unit!]!
+    notes(userId: Int, date: Time): [Note!]!
 }
 
 type Mutation {
-    deleteFood(id: Int!): Food
     addFood(food: NewFood!): Food
+    deleteFood(id: Int!): Food
     addFoodEaten(foodEaten: NewFoodEaten!): FoodEaten
     deleteFoodEaten(id: Int!): FoodEaten
     addMealForDay(meal: NewMeal!): Meal!
+    addNote(note: NewNote!): Note
+    deleteNote(id: Int!): Note
 }
