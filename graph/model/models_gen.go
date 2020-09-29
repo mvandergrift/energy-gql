@@ -2,6 +2,10 @@
 
 package model
 
+import (
+	"time"
+)
+
 type MealType struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
@@ -28,6 +32,14 @@ type NewFoodEaten struct {
 	FoodID int     `json:"foodId"`
 	Size   float64 `json:"size"`
 	UnitID int     `json:"unitId"`
+}
+
+type NewNote struct {
+	ID       *int      `json:"id"`
+	NoteDate time.Time `json:"noteDate"`
+	Subject  string    `json:"subject"`
+	Content  string    `json:"content"`
+	UserID   int       `json:"userId"`
 }
 
 type UnitType struct {

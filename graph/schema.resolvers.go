@@ -13,13 +13,6 @@ import (
 	"github.com/mvandergrift/energy-gql/graph/model"
 )
 
-func (r *mutationResolver) DeleteFood(ctx context.Context, id int) (*model.Food, error) {
-	var food model.Food
-	r.DB.Where("id = ?", id).First(&food)
-	err := r.DB.Delete(&food).Error
-	return &food, err
-}
-
 func (r *mutationResolver) AddFood(ctx context.Context, food model.NewFood) (*model.Food, error) {
 	newFood := model.Food{Name: food.Name, Calories: food.Calories, ImgURL: food.FoodImg, UnitID: *food.UnitID}
 
@@ -35,6 +28,13 @@ func (r *mutationResolver) AddFood(ctx context.Context, food model.NewFood) (*mo
 	//log.Println(&newFood)
 	r.DB.Preload("Unit").Preload("Unit.UnitType").First(&newFood, result.Value)
 	return &newFood, result.Error
+}
+
+func (r *mutationResolver) DeleteFood(ctx context.Context, id int) (*model.Food, error) {
+	var food model.Food
+	r.DB.Where("id = ?", id).First(&food)
+	err := r.DB.Delete(&food).Error
+	return &food, err
 }
 
 func (r *mutationResolver) AddFoodEaten(ctx context.Context, foodEaten model.NewFoodEaten) (*model.FoodEaten, error) {
@@ -77,6 +77,26 @@ func (r *mutationResolver) AddMealForDay(ctx context.Context, meal model.NewMeal
 	}
 
 	return &d, result.Error
+}
+
+func (r *mutationResolver) AddNote(ctx context.Context, note model.NewNote) (*model.Note, error) {
+	newNote := model.Note{Content: note.Content, Subject: note.Subject, NoteDate: note.NoteDate, UserID: note.UserID}
+	var result *gorm.DB
+
+	if note.ID == nil {
+		result = r.DB.Omit("ID").Create(&newNote)
+	} else {
+		newNote.ID = *note.ID
+		result = r.DB.Save(newNote)
+	}
+
+	return &newNote, result.Error
+}
+
+func (r *mutationResolver) DeleteNote(ctx context.Context, id int) (*model.Note, error) {
+	var note model.Note
+	err := r.DB.Delete(&note, "id = ?", id).Error
+	return &note, err
 }
 
 func (r *queryResolver) AllMeals(ctx context.Context, userID *int) ([]*model.Meal, error) {
@@ -139,6 +159,22 @@ func (r *queryResolver) UnitsForFood(ctx context.Context, foodID *int) ([]*model
 	units = append(units, food.Unit)
 	log.Printf("units %+v", units)
 	return units, nil
+}
+
+func (r *queryResolver) Notes(ctx context.Context, userID *int, date *time.Time) ([]*model.Note, error) {
+	var notes []*model.Note
+	tx := r.DB.Order("note_date desc")
+
+	if userID != nil {
+		tx = tx.Where("user_id = ?", userID)
+	}
+
+	if date != nil {
+		tx = tx.Where("note_date = ?", date)
+	}
+
+	err := tx.Find(&notes).Error
+	return notes, err
 }
 
 // Mutation returns generated.MutationResolver implementation.

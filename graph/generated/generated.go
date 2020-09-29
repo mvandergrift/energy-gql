@@ -84,8 +84,17 @@ type ComplexityRoot struct {
 		AddFood         func(childComplexity int, food model.NewFood) int
 		AddFoodEaten    func(childComplexity int, foodEaten model.NewFoodEaten) int
 		AddMealForDay   func(childComplexity int, meal model.NewMeal) int
+		AddNote         func(childComplexity int, note model.NewNote) int
 		DeleteFood      func(childComplexity int, id int) int
 		DeleteFoodEaten func(childComplexity int, id int) int
+		DeleteNote      func(childComplexity int, id int) int
+	}
+
+	Note struct {
+		Content  func(childComplexity int) int
+		ID       func(childComplexity int) int
+		NoteDate func(childComplexity int) int
+		Subject  func(childComplexity int) int
 	}
 
 	Query struct {
@@ -93,6 +102,7 @@ type ComplexityRoot struct {
 		AllMeals     func(childComplexity int, userID *int) int
 		AllUnits     func(childComplexity int) int
 		MealsForDay  func(childComplexity int, userID int, date time.Time) int
+		Notes        func(childComplexity int, userID *int, date *time.Time) int
 		UnitsForFood func(childComplexity int, foodID *int) int
 	}
 
@@ -116,11 +126,13 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	DeleteFood(ctx context.Context, id int) (*model.Food, error)
 	AddFood(ctx context.Context, food model.NewFood) (*model.Food, error)
+	DeleteFood(ctx context.Context, id int) (*model.Food, error)
 	AddFoodEaten(ctx context.Context, foodEaten model.NewFoodEaten) (*model.FoodEaten, error)
 	DeleteFoodEaten(ctx context.Context, id int) (*model.FoodEaten, error)
 	AddMealForDay(ctx context.Context, meal model.NewMeal) (*model.Meal, error)
+	AddNote(ctx context.Context, note model.NewNote) (*model.Note, error)
+	DeleteNote(ctx context.Context, id int) (*model.Note, error)
 }
 type QueryResolver interface {
 	AllMeals(ctx context.Context, userID *int) ([]*model.Meal, error)
@@ -128,6 +140,7 @@ type QueryResolver interface {
 	AllFoods(ctx context.Context, userID *int) ([]*model.Food, error)
 	AllUnits(ctx context.Context) ([]*model.Unit, error)
 	UnitsForFood(ctx context.Context, foodID *int) ([]*model.Unit, error)
+	Notes(ctx context.Context, userID *int, date *time.Time) ([]*model.Note, error)
 }
 
 type executableSchema struct {
@@ -349,6 +362,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddMealForDay(childComplexity, args["meal"].(model.NewMeal)), true
 
+	case "Mutation.addNote":
+		if e.complexity.Mutation.AddNote == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addNote_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddNote(childComplexity, args["note"].(model.NewNote)), true
+
 	case "Mutation.deleteFood":
 		if e.complexity.Mutation.DeleteFood == nil {
 			break
@@ -372,6 +397,46 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteFoodEaten(childComplexity, args["id"].(int)), true
+
+	case "Mutation.deleteNote":
+		if e.complexity.Mutation.DeleteNote == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteNote_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteNote(childComplexity, args["id"].(int)), true
+
+	case "Note.content":
+		if e.complexity.Note.Content == nil {
+			break
+		}
+
+		return e.complexity.Note.Content(childComplexity), true
+
+	case "Note.id":
+		if e.complexity.Note.ID == nil {
+			break
+		}
+
+		return e.complexity.Note.ID(childComplexity), true
+
+	case "Note.noteDate":
+		if e.complexity.Note.NoteDate == nil {
+			break
+		}
+
+		return e.complexity.Note.NoteDate(childComplexity), true
+
+	case "Note.subject":
+		if e.complexity.Note.Subject == nil {
+			break
+		}
+
+		return e.complexity.Note.Subject(childComplexity), true
 
 	case "Query.allFoods":
 		if e.complexity.Query.AllFoods == nil {
@@ -415,6 +480,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.MealsForDay(childComplexity, args["userId"].(int), args["date"].(time.Time)), true
+
+	case "Query.notes":
+		if e.complexity.Query.Notes == nil {
+			break
+		}
+
+		args, err := ec.field_Query_notes_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Notes(childComplexity, args["userId"].(*int), args["date"].(*time.Time)), true
 
 	case "Query.unitsForFood":
 		if e.complexity.Query.UnitsForFood == nil {
@@ -646,20 +723,38 @@ type User {
     lastName: String!
 }
 
+type Note {
+    id: Int!
+    noteDate: Time!
+    subject: String!
+    content: String!
+}
+
+input NewNote {
+    id: Int
+    noteDate: Time!
+    subject: String!
+    content: String!
+    userId: Int!
+}
+
 type Query {
     allMeals(userId: Int): [Meal!]!
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
     allFoods(userId: Int): [Food!]!
     allUnits: [Unit!]!
     unitsForFood(foodId: Int): [Unit!]!
+    notes(userId: Int, date: Time): [Note!]!
 }
 
 type Mutation {
-    deleteFood(id: Int!): Food
     addFood(food: NewFood!): Food
+    deleteFood(id: Int!): Food
     addFoodEaten(foodEaten: NewFoodEaten!): FoodEaten
     deleteFoodEaten(id: Int!): FoodEaten
     addMealForDay(meal: NewMeal!): Meal!
+    addNote(note: NewNote!): Note
+    deleteNote(id: Int!): Note
 }
 `, BuiltIn: false},
 }
@@ -714,6 +809,21 @@ func (ec *executionContext) field_Mutation_addMealForDay_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_addNote_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.NewNote
+	if tmp, ok := rawArgs["note"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("note"))
+		arg0, err = ec.unmarshalNNewNote2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewNote(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["note"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_deleteFoodEaten_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -730,6 +840,21 @@ func (ec *executionContext) field_Mutation_deleteFoodEaten_args(ctx context.Cont
 }
 
 func (ec *executionContext) field_Mutation_deleteFood_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteNote_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
@@ -805,6 +930,30 @@ func (ec *executionContext) field_Query_mealsForDay_args(ctx context.Context, ra
 	if tmp, ok := rawArgs["date"]; ok {
 		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("date"))
 		arg1, err = ec.unmarshalNTime2timeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["date"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_notes_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg0
+	var arg1 *time.Time
+	if tmp, ok := rawArgs["date"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("date"))
+		arg1, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1652,44 +1801,6 @@ func (ec *executionContext) _MealType_name(ctx context.Context, field graphql.Co
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_deleteFood(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_deleteFood_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteFood(rctx, args["id"].(int))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.Food)
-	fc.Result = res
-	return ec.marshalOFood2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐFood(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Mutation_addFood(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1715,6 +1826,44 @@ func (ec *executionContext) _Mutation_addFood(ctx context.Context, field graphql
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().AddFood(rctx, args["food"].(model.NewFood))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Food)
+	fc.Result = res
+	return ec.marshalOFood2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐFood(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteFood(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteFood_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteFood(rctx, args["id"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1843,6 +1992,218 @@ func (ec *executionContext) _Mutation_addMealForDay(ctx context.Context, field g
 	res := resTmp.(*model.Meal)
 	fc.Result = res
 	return ec.marshalNMeal2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐMeal(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addNote(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addNote_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddNote(rctx, args["note"].(model.NewNote))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Note)
+	fc.Result = res
+	return ec.marshalONote2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNote(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteNote(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteNote_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteNote(rctx, args["id"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Note)
+	fc.Result = res
+	return ec.marshalONote2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNote(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Note_id(ctx context.Context, field graphql.CollectedField, obj *model.Note) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Note",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Note_noteDate(ctx context.Context, field graphql.CollectedField, obj *model.Note) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Note",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.NoteDate, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Note_subject(ctx context.Context, field graphql.CollectedField, obj *model.Note) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Note",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Subject, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Note_content(ctx context.Context, field graphql.CollectedField, obj *model.Note) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Note",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Content, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_allMeals(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2041,6 +2402,47 @@ func (ec *executionContext) _Query_unitsForFood(ctx context.Context, field graph
 	res := resTmp.([]*model.Unit)
 	fc.Result = res
 	return ec.marshalNUnit2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐUnitᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_notes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_notes_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Notes(rctx, args["userId"].(*int), args["date"].(*time.Time))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Note)
+	fc.Result = res
+	return ec.marshalNNote2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNoteᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3669,6 +4071,58 @@ func (ec *executionContext) unmarshalInputNewMeal(ctx context.Context, obj inter
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputNewNote(ctx context.Context, obj interface{}) (model.NewNote, error) {
+	var it model.NewNote
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+			it.ID, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "noteDate":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("noteDate"))
+			it.NoteDate, err = ec.unmarshalNTime2timeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "subject":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("subject"))
+			it.Subject, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "content":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("content"))
+			it.Content, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "userId":
+			var err error
+
+			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -3870,16 +4324,62 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "deleteFood":
-			out.Values[i] = ec._Mutation_deleteFood(ctx, field)
 		case "addFood":
 			out.Values[i] = ec._Mutation_addFood(ctx, field)
+		case "deleteFood":
+			out.Values[i] = ec._Mutation_deleteFood(ctx, field)
 		case "addFoodEaten":
 			out.Values[i] = ec._Mutation_addFoodEaten(ctx, field)
 		case "deleteFoodEaten":
 			out.Values[i] = ec._Mutation_deleteFoodEaten(ctx, field)
 		case "addMealForDay":
 			out.Values[i] = ec._Mutation_addMealForDay(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "addNote":
+			out.Values[i] = ec._Mutation_addNote(ctx, field)
+		case "deleteNote":
+			out.Values[i] = ec._Mutation_deleteNote(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var noteImplementors = []string{"Note"}
+
+func (ec *executionContext) _Note(ctx context.Context, sel ast.SelectionSet, obj *model.Note) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, noteImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Note")
+		case "id":
+			out.Values[i] = ec._Note_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "noteDate":
+			out.Values[i] = ec._Note_noteDate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "subject":
+			out.Values[i] = ec._Note_subject(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "content":
+			out.Values[i] = ec._Note_content(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3974,6 +4474,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_unitsForFood(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "notes":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_notes(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -4586,6 +5100,58 @@ func (ec *executionContext) unmarshalNNewMeal2githubᚗcomᚋmvandergriftᚋener
 	return res, graphql.WrapErrorWithInputPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNNewNote2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewNote(ctx context.Context, v interface{}) (model.NewNote, error) {
+	res, err := ec.unmarshalInputNewNote(ctx, v)
+	return res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNNote2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNoteᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Note) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNNote2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNote(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNNote2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNote(ctx context.Context, sel ast.SelectionSet, v *model.Note) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Note(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.WrapErrorWithInputPath(ctx, err)
@@ -4970,6 +5536,13 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return graphql.MarshalInt(*v)
 }
 
+func (ec *executionContext) marshalONote2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNote(ctx context.Context, sel ast.SelectionSet, v *model.Note) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Note(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.WrapErrorWithInputPath(ctx, err)
@@ -4992,6 +5565,21 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
+}
+
+func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.WrapErrorWithInputPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalTime(*v)
 }
 
 func (ec *executionContext) marshalOUnit2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐUnit(ctx context.Context, sel ast.SelectionSet, v *model.Unit) graphql.Marshaler {
