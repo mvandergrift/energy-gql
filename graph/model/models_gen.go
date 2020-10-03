@@ -6,9 +6,22 @@ import (
 	"time"
 )
 
+type Activity struct {
+	ID     int     `json:"id"`
+	Name   string  `json:"name"`
+	ImgURL *string `json:"imgURL"`
+}
+
 type MealType struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
+}
+
+type NewActivity struct {
+	ID     *int    `json:"id"`
+	Name   string  `json:"name"`
+	UserID int     `json:"userId"`
+	ImgURL *string `json:"imgURL"`
 }
 
 type NewFood struct {
@@ -40,6 +53,20 @@ type NewNote struct {
 	Subject  string    `json:"subject"`
 	Content  string    `json:"content"`
 	UserID   int       `json:"userId"`
+}
+
+type NewWorkout struct {
+	ID           *int       `json:"id"`
+	UserID       int        `json:"userId"`
+	ActivityDate time.Time  `json:"activityDate"`
+	ActivityID   int        `json:"activityId"`
+	Duration     *int       `json:"duration"`
+	Calories     *float64   `json:"calories"`
+	Intensity    *float64   `json:"intensity"`
+	Distance     *float64   `json:"distance"`
+	StartTime    *time.Time `json:"startTime"`
+	EndTime      *time.Time `json:"endTime"`
+	Comment      *string    `json:"comment"`
 }
 
 type UnitType struct {
