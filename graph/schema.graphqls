@@ -104,6 +104,47 @@ input NewNote {
     userId: Int!
 }
 
+type Activity {
+    id: Int!
+    name: String!
+    imgURL: String
+}
+
+input NewActivity {
+    id: Int
+    name: String!
+    userId: Int!
+    imgURL: String
+}
+
+type Workout {
+    id: Int!
+    user: User!
+    activityDate: Time!
+    activity: Activity!
+    duration: Int
+    calories: Float
+    intensity: Float
+    distance: Float
+    startTime: Time
+    endTime: Time
+    comment: String
+}
+
+input NewWorkout {
+    id: Int
+    userId: Int!
+    activityDate: Time!
+    activityId: Int!
+    duration: Int
+    calories: Float
+    intensity: Float
+    distance: Float
+    startTime: Time
+    endTime: Time
+    comment: String
+}
+
 type Query {
     allMeals(userId: Int): [Meal!]!
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
@@ -111,6 +152,7 @@ type Query {
     allUnits: [Unit!]!
     unitsForFood(foodId: Int): [Unit!]!
     notes(userId: Int, date: Time): [Note!]!
+    workoutsForDay(userId: Int!, date: Time): [Workout!]!
 }
 
 type Mutation {

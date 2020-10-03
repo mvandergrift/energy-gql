@@ -177,6 +177,20 @@ func (r *queryResolver) Notes(ctx context.Context, userID *int, date *time.Time)
 	return notes, err
 }
 
+func (r *queryResolver) WorkoutsForDay(ctx context.Context, userID int, date *time.Time) ([]*model.Workout, error) {
+	var workouts []*model.Workout
+	tx := r.DB.Order("activity_date desc")
+
+	if date != nil {
+		log.Println("Date filter", date)
+		tx = tx.Where("activity_date = ? ", date)
+	}
+
+	tx = tx.Where("activity_id <> 1") // walking doesn't count as a workout
+	err := tx.Preload("Activity").Where("user_id = ?", userID).Find(&workouts).Error
+	return workouts, err
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
