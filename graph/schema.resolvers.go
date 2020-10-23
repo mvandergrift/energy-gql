@@ -99,6 +99,12 @@ func (r *mutationResolver) DeleteNote(ctx context.Context, id int) (*model.Note,
 	return &note, err
 }
 
+func (r *mutationResolver) DeleteWorkout(ctx context.Context, id int) (*model.Workout, error) {
+	var workout model.Workout
+	err := r.DB.Delete(&workout, "id = ?", id).Error
+	return &workout, err
+}
+
 func (r *queryResolver) AllMeals(ctx context.Context, userID *int) ([]*model.Meal, error) {
 	var meals []*model.Meal
 	tx := r.DB.Order("meal_date, meal_type_id")

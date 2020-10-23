@@ -94,6 +94,7 @@ type ComplexityRoot struct {
 		DeleteFood      func(childComplexity int, id int) int
 		DeleteFoodEaten func(childComplexity int, id int) int
 		DeleteNote      func(childComplexity int, id int) int
+		DeleteWorkout   func(childComplexity int, id int) int
 	}
 
 	Note struct {
@@ -154,6 +155,7 @@ type MutationResolver interface {
 	AddMealForDay(ctx context.Context, meal model.NewMeal) (*model.Meal, error)
 	AddNote(ctx context.Context, note model.NewNote) (*model.Note, error)
 	DeleteNote(ctx context.Context, id int) (*model.Note, error)
+	DeleteWorkout(ctx context.Context, id int) (*model.Workout, error)
 }
 type QueryResolver interface {
 	AllMeals(ctx context.Context, userID *int) ([]*model.Meal, error)
@@ -452,6 +454,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteNote(childComplexity, args["id"].(int)), true
+
+	case "Mutation.deleteWorkout":
+		if e.complexity.Mutation.DeleteWorkout == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteWorkout_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteWorkout(childComplexity, args["id"].(int)), true
 
 	case "Note.content":
 		if e.complexity.Note.Content == nil {
@@ -929,6 +943,7 @@ type Mutation {
     addMealForDay(meal: NewMeal!): Meal!
     addNote(note: NewNote!): Note
     deleteNote(id: Int!): Note
+    deleteWorkout(id: Int!): Workout
 }
 `, BuiltIn: false},
 }
@@ -1029,6 +1044,21 @@ func (ec *executionContext) field_Mutation_deleteFood_args(ctx context.Context, 
 }
 
 func (ec *executionContext) field_Mutation_deleteNote_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteWorkout_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
@@ -2365,6 +2395,44 @@ func (ec *executionContext) _Mutation_deleteNote(ctx context.Context, field grap
 	res := resTmp.(*model.Note)
 	fc.Result = res
 	return ec.marshalONote2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNote(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteWorkout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteWorkout_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteWorkout(rctx, args["id"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Workout)
+	fc.Result = res
+	return ec.marshalOWorkout2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐWorkout(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Note_id(ctx context.Context, field graphql.CollectedField, obj *model.Note) (ret graphql.Marshaler) {
@@ -5210,6 +5278,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_addNote(ctx, field)
 		case "deleteNote":
 			out.Values[i] = ec._Mutation_deleteNote(ctx, field)
+		case "deleteWorkout":
+			out.Values[i] = ec._Mutation_deleteWorkout(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6600,6 +6670,13 @@ func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋmvandergriftᚋenergy
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOWorkout2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐWorkout(ctx context.Context, sel ast.SelectionSet, v *model.Workout) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Workout(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
