@@ -163,4 +163,5 @@ type Mutation {
     addMealForDay(meal: NewMeal!): Meal!
     addNote(note: NewNote!): Note
     deleteNote(id: Int!): Note
+    deleteWorkout(id: Int!): Workout
 }
