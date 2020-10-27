@@ -183,7 +183,7 @@ func (r *queryResolver) Notes(ctx context.Context, userID *int, date *time.Time)
 	return notes, err
 }
 
-func (r *queryResolver) WorkoutsForDay(ctx context.Context, userID int, date *time.Time) ([]*model.Workout, error) {
+func (r *queryResolver) WorkoutsForDay(ctx context.Context, userID int, date *time.Time, attributes []int) ([]*model.Workout, error) {
 	var workouts []*model.Workout
 	tx := r.DB.Order("activity_date desc")
 
@@ -192,7 +192,10 @@ func (r *queryResolver) WorkoutsForDay(ctx context.Context, userID int, date *ti
 		tx = tx.Where("activity_date = ? ", date)
 	}
 
-	tx = tx.Where("activity_id <> 1") // walking doesn't count as a workout
+	if len(attributes) > 0 {
+		tx = tx.Where("attribute_id IN (?)", attributes)
+	}
+
 	err := tx.Preload("Activity").Where("user_id = ?", userID).Find(&workouts).Error
 	return workouts, err
 }
