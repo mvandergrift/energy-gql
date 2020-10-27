@@ -14,6 +14,7 @@ type Workout struct {
 	Calories     *float64   `json:"calories"`
 	Intensity    *float64   `json:"intensity"`
 	Distance     *float64   `json:"distance"`
+	Attribute    *int       `json:"attribute" gorm:"column:attribute_id"`
 	StartTime    *time.Time `json:"startTime"`
 	EndTime      *time.Time `json:"endTime"`
 	CreatedAt    *time.Time

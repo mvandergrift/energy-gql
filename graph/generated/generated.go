@@ -111,7 +111,7 @@ type ComplexityRoot struct {
 		MealsForDay    func(childComplexity int, userID int, date time.Time) int
 		Notes          func(childComplexity int, userID *int, date *time.Time) int
 		UnitsForFood   func(childComplexity int, foodID *int) int
-		WorkoutsForDay func(childComplexity int, userID int, date *time.Time) int
+		WorkoutsForDay func(childComplexity int, userID int, date *time.Time, attributes []int) int
 	}
 
 	Unit struct {
@@ -135,6 +135,7 @@ type ComplexityRoot struct {
 	Workout struct {
 		Activity     func(childComplexity int) int
 		ActivityDate func(childComplexity int) int
+		Attribute    func(childComplexity int) int
 		Calories     func(childComplexity int) int
 		Comment      func(childComplexity int) int
 		Distance     func(childComplexity int) int
@@ -164,7 +165,7 @@ type QueryResolver interface {
 	AllUnits(ctx context.Context) ([]*model.Unit, error)
 	UnitsForFood(ctx context.Context, foodID *int) ([]*model.Unit, error)
 	Notes(ctx context.Context, userID *int, date *time.Time) ([]*model.Note, error)
-	WorkoutsForDay(ctx context.Context, userID int, date *time.Time) ([]*model.Workout, error)
+	WorkoutsForDay(ctx context.Context, userID int, date *time.Time, attributes []int) ([]*model.Workout, error)
 }
 
 type executableSchema struct {
@@ -572,7 +573,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.WorkoutsForDay(childComplexity, args["userId"].(int), args["date"].(*time.Time)), true
+		return e.complexity.Query.WorkoutsForDay(childComplexity, args["userId"].(int), args["date"].(*time.Time), args["attributes"].([]int)), true
 
 	case "Unit.id":
 		if e.complexity.Unit.ID == nil {
@@ -650,6 +651,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Workout.ActivityDate(childComplexity), true
+
+	case "Workout.attribute":
+		if e.complexity.Workout.Attribute == nil {
+			break
+		}
+
+		return e.complexity.Workout.Attribute(childComplexity), true
 
 	case "Workout.calories":
 		if e.complexity.Workout.Calories == nil {
@@ -908,6 +916,7 @@ type Workout {
     distance: Float
     startTime: Time
     endTime: Time
+    attribute: Int
     comment: String
 }
 
@@ -932,7 +941,7 @@ type Query {
     allUnits: [Unit!]!
     unitsForFood(foodId: Int): [Unit!]!
     notes(userId: Int, date: Time): [Note!]!
-    workoutsForDay(userId: Int!, date: Time): [Workout!]!
+    workoutsForDay(userId: Int!, date: Time, attributes: [Int!]): [Workout!]!
 }
 
 type Mutation {
@@ -1202,6 +1211,15 @@ func (ec *executionContext) field_Query_workoutsForDay_args(ctx context.Context,
 		}
 	}
 	args["date"] = arg1
+	var arg2 []int
+	if tmp, ok := rawArgs["attributes"]; ok {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("attributes"))
+		arg2, err = ec.unmarshalOInt2ᚕintᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["attributes"] = arg2
 	return args, nil
 }
 
@@ -2834,7 +2852,7 @@ func (ec *executionContext) _Query_workoutsForDay(ctx context.Context, field gra
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().WorkoutsForDay(rctx, args["userId"].(int), args["date"].(*time.Time))
+		return ec.resolvers.Query().WorkoutsForDay(rctx, args["userId"].(int), args["date"].(*time.Time), args["attributes"].([]int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3546,6 +3564,37 @@ func (ec *executionContext) _Workout_endTime(ctx context.Context, field graphql.
 	res := resTmp.(*time.Time)
 	fc.Result = res
 	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Workout_attribute(ctx context.Context, field graphql.CollectedField, obj *model.Workout) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Workout",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Attribute, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Workout_comment(ctx context.Context, field graphql.CollectedField, obj *model.Workout) (ret graphql.Marshaler) {
@@ -5615,6 +5664,8 @@ func (ec *executionContext) _Workout(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = ec._Workout_startTime(ctx, field, obj)
 		case "endTime":
 			out.Values[i] = ec._Workout_endTime(ctx, field, obj)
+		case "attribute":
+			out.Values[i] = ec._Workout_attribute(ctx, field, obj)
 		case "comment":
 			out.Values[i] = ec._Workout_comment(ctx, field, obj)
 		default:
@@ -6595,6 +6646,42 @@ func (ec *executionContext) marshalOFoodEaten2ᚖgithubᚗcomᚋmvandergriftᚋe
 		return graphql.Null
 	}
 	return ec._FoodEaten(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOInt2ᚕintᚄ(ctx context.Context, v interface{}) ([]int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]int, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithIndex(i))
+		res[i], err = ec.unmarshalNInt2int(ctx, vSlice[i])
+		if err != nil {
+			return nil, graphql.WrapErrorWithInputPath(ctx, err)
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOInt2ᚕintᚄ(ctx context.Context, sel ast.SelectionSet, v []int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNInt2int(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {

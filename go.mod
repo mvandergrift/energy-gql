@@ -8,10 +8,11 @@ require (
 	github.com/awslabs/aws-lambda-go-api-proxy v0.8.0
 	github.com/gorilla/handlers v1.5.0
 	github.com/gorilla/mux v1.8.0
-	github.com/gorilla/websocket v1.4.2
 	github.com/jinzhu/gorm v1.9.16
 	github.com/joho/godotenv v1.3.0
 	github.com/lib/pq v1.1.1
+	github.com/onsi/ginkgo v1.14.2 // indirect
+	github.com/onsi/gomega v1.10.3 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/vektah/gqlparser/v2 v2.0.1
 )
