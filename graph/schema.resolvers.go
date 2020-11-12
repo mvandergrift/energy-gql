@@ -11,6 +11,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/mvandergrift/energy-gql/graph/generated"
 	"github.com/mvandergrift/energy-gql/graph/model"
+	"github.com/mvandergrift/energy-gql/internal/generate"
 )
 
 func (r *mutationResolver) AddFood(ctx context.Context, food model.NewFood) (*model.Food, error) {
@@ -197,6 +198,14 @@ func (r *queryResolver) WorkoutsForDay(ctx context.Context, userID int, date *ti
 	}
 
 	err := tx.Preload("Activity").Where("user_id = ?", userID).Find(&workouts).Error
+	return workouts, err
+}
+
+func (r *queryResolver) WorkoutQuery(ctx context.Context, filter *model.PredicateGroup) ([]*model.Workout, error) {
+	var workouts []*model.Workout
+	tx := r.DB.Order("activity_date desc")
+	c := generate.BuildPredicateGroup(filter, generate.Collection{})
+	err := tx.Preload("Activity").Where(c.Query, c.Values...).Find(&workouts).Error
 	return workouts, err
 }
 
