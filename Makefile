@@ -14,7 +14,7 @@ generate:
 	go generate ./...
 
 run:
-	go run server.go --debug --sql
+	go run server.go --sql
 
 invoke:
 	env GOOS=linux go build -o bin/energy-gql handlers/main.go

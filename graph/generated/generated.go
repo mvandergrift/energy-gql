@@ -104,6 +104,10 @@ type ComplexityRoot struct {
 		Subject  func(childComplexity int) int
 	}
 
+	PredicateResult struct {
+		Query func(childComplexity int) int
+	}
+
 	Query struct {
 		AllFoods       func(childComplexity int, userID *int) int
 		AllMeals       func(childComplexity int, userID *int) int
@@ -111,6 +115,7 @@ type ComplexityRoot struct {
 		MealsForDay    func(childComplexity int, userID int, date time.Time) int
 		Notes          func(childComplexity int, userID *int, date *time.Time) int
 		UnitsForFood   func(childComplexity int, foodID *int) int
+		WorkoutQuery   func(childComplexity int, filter *model.PredicateGroup) int
 		WorkoutsForDay func(childComplexity int, userID int, date *time.Time, attributes []int) int
 	}
 
@@ -166,6 +171,7 @@ type QueryResolver interface {
 	UnitsForFood(ctx context.Context, foodID *int) ([]*model.Unit, error)
 	Notes(ctx context.Context, userID *int, date *time.Time) ([]*model.Note, error)
 	WorkoutsForDay(ctx context.Context, userID int, date *time.Time, attributes []int) ([]*model.Workout, error)
+	WorkoutQuery(ctx context.Context, filter *model.PredicateGroup) ([]*model.Workout, error)
 }
 
 type executableSchema struct {
@@ -496,6 +502,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Note.Subject(childComplexity), true
 
+	case "PredicateResult.query":
+		if e.complexity.PredicateResult.Query == nil {
+			break
+		}
+
+		return e.complexity.PredicateResult.Query(childComplexity), true
+
 	case "Query.allFoods":
 		if e.complexity.Query.AllFoods == nil {
 			break
@@ -562,6 +575,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.UnitsForFood(childComplexity, args["foodId"].(*int)), true
+
+	case "Query.workoutQuery":
+		if e.complexity.Query.WorkoutQuery == nil {
+			break
+		}
+
+		args, err := ec.field_Query_workoutQuery_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.WorkoutQuery(childComplexity, args["filter"].(*model.PredicateGroup)), true
 
 	case "Query.workoutsForDay":
 		if e.complexity.Query.WorkoutsForDay == nil {
@@ -934,6 +959,40 @@ input NewWorkout {
     comment: String
 }
 
+enum Logic {
+    AND
+    OR
+}
+
+enum Operator {
+    EQUAL
+    NOT_EQUAL
+    GREATOR
+    LESS
+    GREATOR_EQUAL
+    LESS_EQUAL
+    CONTAINS
+    STARTS_WITH
+    IS_NULL
+    IS_NOT_NULL
+}
+
+input PredicateGroup {
+    predicates: [Predicate!]!
+    logic: Logic!
+}
+
+input Predicate {
+    name: String
+    values: [String!]
+    operator: Operator
+    innerPredicate: PredicateGroup
+}
+
+type PredicateResult {
+    query: String
+}
+
 type Query {
     allMeals(userId: Int): [Meal!]!
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
@@ -942,6 +1001,7 @@ type Query {
     unitsForFood(foodId: Int): [Unit!]!
     notes(userId: Int, date: Time): [Note!]!
     workoutsForDay(userId: Int!, date: Time, attributes: [Int!]): [Workout!]!
+    workoutQuery(filter: PredicateGroup): [Workout!]!
 }
 
 type Mutation {
@@ -967,7 +1027,7 @@ func (ec *executionContext) field_Mutation_addFoodEaten_args(ctx context.Context
 	args := map[string]interface{}{}
 	var arg0 model.NewFoodEaten
 	if tmp, ok := rawArgs["foodEaten"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("foodEaten"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("foodEaten"))
 		arg0, err = ec.unmarshalNNewFoodEaten2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewFoodEaten(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -982,7 +1042,7 @@ func (ec *executionContext) field_Mutation_addFood_args(ctx context.Context, raw
 	args := map[string]interface{}{}
 	var arg0 model.NewFood
 	if tmp, ok := rawArgs["food"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("food"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("food"))
 		arg0, err = ec.unmarshalNNewFood2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewFood(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -997,7 +1057,7 @@ func (ec *executionContext) field_Mutation_addMealForDay_args(ctx context.Contex
 	args := map[string]interface{}{}
 	var arg0 model.NewMeal
 	if tmp, ok := rawArgs["meal"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("meal"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("meal"))
 		arg0, err = ec.unmarshalNNewMeal2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewMeal(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1012,7 +1072,7 @@ func (ec *executionContext) field_Mutation_addNote_args(ctx context.Context, raw
 	args := map[string]interface{}{}
 	var arg0 model.NewNote
 	if tmp, ok := rawArgs["note"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("note"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("note"))
 		arg0, err = ec.unmarshalNNewNote2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewNote(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1027,7 +1087,7 @@ func (ec *executionContext) field_Mutation_deleteFoodEaten_args(ctx context.Cont
 	args := map[string]interface{}{}
 	var arg0 int
 	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1042,7 +1102,7 @@ func (ec *executionContext) field_Mutation_deleteFood_args(ctx context.Context, 
 	args := map[string]interface{}{}
 	var arg0 int
 	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1057,7 +1117,7 @@ func (ec *executionContext) field_Mutation_deleteNote_args(ctx context.Context, 
 	args := map[string]interface{}{}
 	var arg0 int
 	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1072,7 +1132,7 @@ func (ec *executionContext) field_Mutation_deleteWorkout_args(ctx context.Contex
 	args := map[string]interface{}{}
 	var arg0 int
 	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1087,7 +1147,7 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	args := map[string]interface{}{}
 	var arg0 string
 	if tmp, ok := rawArgs["name"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("name"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1102,7 +1162,7 @@ func (ec *executionContext) field_Query_allFoods_args(ctx context.Context, rawAr
 	args := map[string]interface{}{}
 	var arg0 *int
 	if tmp, ok := rawArgs["userId"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
 		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1117,7 +1177,7 @@ func (ec *executionContext) field_Query_allMeals_args(ctx context.Context, rawAr
 	args := map[string]interface{}{}
 	var arg0 *int
 	if tmp, ok := rawArgs["userId"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
 		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1132,7 +1192,7 @@ func (ec *executionContext) field_Query_mealsForDay_args(ctx context.Context, ra
 	args := map[string]interface{}{}
 	var arg0 int
 	if tmp, ok := rawArgs["userId"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1141,7 +1201,7 @@ func (ec *executionContext) field_Query_mealsForDay_args(ctx context.Context, ra
 	args["userId"] = arg0
 	var arg1 time.Time
 	if tmp, ok := rawArgs["date"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("date"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("date"))
 		arg1, err = ec.unmarshalNTime2timeᚐTime(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1156,7 +1216,7 @@ func (ec *executionContext) field_Query_notes_args(ctx context.Context, rawArgs 
 	args := map[string]interface{}{}
 	var arg0 *int
 	if tmp, ok := rawArgs["userId"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
 		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1165,7 +1225,7 @@ func (ec *executionContext) field_Query_notes_args(ctx context.Context, rawArgs 
 	args["userId"] = arg0
 	var arg1 *time.Time
 	if tmp, ok := rawArgs["date"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("date"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("date"))
 		arg1, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1180,7 +1240,7 @@ func (ec *executionContext) field_Query_unitsForFood_args(ctx context.Context, r
 	args := map[string]interface{}{}
 	var arg0 *int
 	if tmp, ok := rawArgs["foodId"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("foodId"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("foodId"))
 		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1190,12 +1250,27 @@ func (ec *executionContext) field_Query_unitsForFood_args(ctx context.Context, r
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_workoutQuery_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.PredicateGroup
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOPredicateGroup2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐPredicateGroup(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_workoutsForDay_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
 	if tmp, ok := rawArgs["userId"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1204,7 +1279,7 @@ func (ec *executionContext) field_Query_workoutsForDay_args(ctx context.Context,
 	args["userId"] = arg0
 	var arg1 *time.Time
 	if tmp, ok := rawArgs["date"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("date"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("date"))
 		arg1, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1213,7 +1288,7 @@ func (ec *executionContext) field_Query_workoutsForDay_args(ctx context.Context,
 	args["date"] = arg1
 	var arg2 []int
 	if tmp, ok := rawArgs["attributes"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("attributes"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("attributes"))
 		arg2, err = ec.unmarshalOInt2ᚕintᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1228,7 +1303,7 @@ func (ec *executionContext) field___Type_enumValues_args(ctx context.Context, ra
 	args := map[string]interface{}{}
 	var arg0 bool
 	if tmp, ok := rawArgs["includeDeprecated"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("includeDeprecated"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("includeDeprecated"))
 		arg0, err = ec.unmarshalOBoolean2bool(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1243,7 +1318,7 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 	args := map[string]interface{}{}
 	var arg0 bool
 	if tmp, ok := rawArgs["includeDeprecated"]; ok {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("includeDeprecated"))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("includeDeprecated"))
 		arg0, err = ec.unmarshalOBoolean2bool(ctx, tmp)
 		if err != nil {
 			return nil, err
@@ -1269,10 +1344,11 @@ func (ec *executionContext) _Activity_id(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Activity",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Activity",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1303,10 +1379,11 @@ func (ec *executionContext) _Activity_name(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Activity",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Activity",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1337,10 +1414,11 @@ func (ec *executionContext) _Activity_imgURL(ctx context.Context, field graphql.
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Activity",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Activity",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1368,10 +1446,11 @@ func (ec *executionContext) _Food_id(ctx context.Context, field graphql.Collecte
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1402,10 +1481,11 @@ func (ec *executionContext) _Food_name(ctx context.Context, field graphql.Collec
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1436,10 +1516,11 @@ func (ec *executionContext) _Food_calories(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1470,10 +1551,11 @@ func (ec *executionContext) _Food_fat(ctx context.Context, field graphql.Collect
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1501,10 +1583,11 @@ func (ec *executionContext) _Food_satFat(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1532,10 +1615,11 @@ func (ec *executionContext) _Food_carbs(ctx context.Context, field graphql.Colle
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1563,10 +1647,11 @@ func (ec *executionContext) _Food_fiber(ctx context.Context, field graphql.Colle
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1594,10 +1679,11 @@ func (ec *executionContext) _Food_sugar(ctx context.Context, field graphql.Colle
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1625,10 +1711,11 @@ func (ec *executionContext) _Food_sodium(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1656,10 +1743,11 @@ func (ec *executionContext) _Food_protein(ctx context.Context, field graphql.Col
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1687,10 +1775,11 @@ func (ec *executionContext) _Food_imgUrl(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1718,10 +1807,11 @@ func (ec *executionContext) _Food_unit(ctx context.Context, field graphql.Collec
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Food",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Food",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1749,10 +1839,11 @@ func (ec *executionContext) _FoodEaten_id(ctx context.Context, field graphql.Col
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "FoodEaten",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "FoodEaten",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1783,10 +1874,11 @@ func (ec *executionContext) _FoodEaten_name(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "FoodEaten",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "FoodEaten",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1817,10 +1909,11 @@ func (ec *executionContext) _FoodEaten_size(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "FoodEaten",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "FoodEaten",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1851,10 +1944,11 @@ func (ec *executionContext) _FoodEaten_food(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "FoodEaten",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "FoodEaten",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1885,10 +1979,11 @@ func (ec *executionContext) _Meal_id(ctx context.Context, field graphql.Collecte
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Meal",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Meal",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1919,10 +2014,11 @@ func (ec *executionContext) _Meal_mealDate(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Meal",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Meal",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1953,10 +2049,11 @@ func (ec *executionContext) _Meal_mealTypeId(ctx context.Context, field graphql.
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Meal",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Meal",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -1987,10 +2084,11 @@ func (ec *executionContext) _Meal_mealType(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Meal",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Meal",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2021,10 +2119,11 @@ func (ec *executionContext) _Meal_user(ctx context.Context, field graphql.Collec
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Meal",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Meal",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2052,10 +2151,11 @@ func (ec *executionContext) _Meal_foodEaten(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Meal",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Meal",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2086,10 +2186,11 @@ func (ec *executionContext) _MealType_id(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "MealType",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "MealType",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2120,10 +2221,11 @@ func (ec *executionContext) _MealType_name(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "MealType",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "MealType",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2154,10 +2256,11 @@ func (ec *executionContext) _Mutation_addFood(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2192,10 +2295,11 @@ func (ec *executionContext) _Mutation_deleteFood(ctx context.Context, field grap
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2230,10 +2334,11 @@ func (ec *executionContext) _Mutation_addFoodEaten(ctx context.Context, field gr
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2268,10 +2373,11 @@ func (ec *executionContext) _Mutation_deleteFoodEaten(ctx context.Context, field
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2306,10 +2412,11 @@ func (ec *executionContext) _Mutation_addMealForDay(ctx context.Context, field g
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2347,10 +2454,11 @@ func (ec *executionContext) _Mutation_addNote(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2385,10 +2493,11 @@ func (ec *executionContext) _Mutation_deleteNote(ctx context.Context, field grap
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2423,10 +2532,11 @@ func (ec *executionContext) _Mutation_deleteWorkout(ctx context.Context, field g
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2461,10 +2571,11 @@ func (ec *executionContext) _Note_id(ctx context.Context, field graphql.Collecte
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Note",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Note",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2495,10 +2606,11 @@ func (ec *executionContext) _Note_noteDate(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Note",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Note",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2529,10 +2641,11 @@ func (ec *executionContext) _Note_subject(ctx context.Context, field graphql.Col
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Note",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Note",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2563,10 +2676,11 @@ func (ec *executionContext) _Note_content(ctx context.Context, field graphql.Col
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Note",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Note",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2589,6 +2703,38 @@ func (ec *executionContext) _Note_content(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _PredicateResult_query(ctx context.Context, field graphql.CollectedField, obj *model.PredicateResult) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PredicateResult",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Query, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_allMeals(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2597,10 +2743,11 @@ func (ec *executionContext) _Query_allMeals(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2638,10 +2785,11 @@ func (ec *executionContext) _Query_mealsForDay(ctx context.Context, field graphq
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2679,10 +2827,11 @@ func (ec *executionContext) _Query_allFoods(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2720,10 +2869,11 @@ func (ec *executionContext) _Query_allUnits(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2754,10 +2904,11 @@ func (ec *executionContext) _Query_unitsForFood(ctx context.Context, field graph
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2795,10 +2946,11 @@ func (ec *executionContext) _Query_notes(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2836,10 +2988,11 @@ func (ec *executionContext) _Query_workoutsForDay(ctx context.Context, field gra
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2869,6 +3022,48 @@ func (ec *executionContext) _Query_workoutsForDay(ctx context.Context, field gra
 	return ec.marshalNWorkout2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐWorkoutᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_workoutQuery(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_workoutQuery_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().WorkoutQuery(rctx, args["filter"].(*model.PredicateGroup))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Workout)
+	fc.Result = res
+	return ec.marshalNWorkout2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐWorkoutᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2877,10 +3072,11 @@ func (ec *executionContext) _Query___type(ctx context.Context, field graphql.Col
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2915,10 +3111,11 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2946,10 +3143,11 @@ func (ec *executionContext) _Unit_id(ctx context.Context, field graphql.Collecte
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Unit",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Unit",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2980,10 +3178,11 @@ func (ec *executionContext) _Unit_name(ctx context.Context, field graphql.Collec
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Unit",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Unit",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3014,10 +3213,11 @@ func (ec *executionContext) _Unit_unitType(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Unit",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Unit",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3048,10 +3248,11 @@ func (ec *executionContext) _UnitType_id(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "UnitType",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "UnitType",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3082,10 +3283,11 @@ func (ec *executionContext) _UnitType_name(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "UnitType",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "UnitType",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3116,10 +3318,11 @@ func (ec *executionContext) _User_id(ctx context.Context, field graphql.Collecte
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "User",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3150,10 +3353,11 @@ func (ec *executionContext) _User_username(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "User",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3184,10 +3388,11 @@ func (ec *executionContext) _User_firstName(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "User",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3218,10 +3423,11 @@ func (ec *executionContext) _User_lastName(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "User",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3252,10 +3458,11 @@ func (ec *executionContext) _Workout_id(ctx context.Context, field graphql.Colle
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3286,10 +3493,11 @@ func (ec *executionContext) _Workout_user(ctx context.Context, field graphql.Col
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3320,10 +3528,11 @@ func (ec *executionContext) _Workout_activityDate(ctx context.Context, field gra
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3354,10 +3563,11 @@ func (ec *executionContext) _Workout_activity(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3388,10 +3598,11 @@ func (ec *executionContext) _Workout_duration(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3419,10 +3630,11 @@ func (ec *executionContext) _Workout_calories(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3450,10 +3662,11 @@ func (ec *executionContext) _Workout_intensity(ctx context.Context, field graphq
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3481,10 +3694,11 @@ func (ec *executionContext) _Workout_distance(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3512,10 +3726,11 @@ func (ec *executionContext) _Workout_startTime(ctx context.Context, field graphq
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3543,10 +3758,11 @@ func (ec *executionContext) _Workout_endTime(ctx context.Context, field graphql.
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3574,10 +3790,11 @@ func (ec *executionContext) _Workout_attribute(ctx context.Context, field graphq
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3605,10 +3822,11 @@ func (ec *executionContext) _Workout_comment(ctx context.Context, field graphql.
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "Workout",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "Workout",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3636,10 +3854,11 @@ func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Directive",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__Directive",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3670,10 +3889,11 @@ func (ec *executionContext) ___Directive_description(ctx context.Context, field 
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Directive",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__Directive",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3701,10 +3921,11 @@ func (ec *executionContext) ___Directive_locations(ctx context.Context, field gr
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Directive",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__Directive",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3735,10 +3956,11 @@ func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Directive",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__Directive",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3769,10 +3991,11 @@ func (ec *executionContext) ___EnumValue_name(ctx context.Context, field graphql
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__EnumValue",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__EnumValue",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3803,10 +4026,11 @@ func (ec *executionContext) ___EnumValue_description(ctx context.Context, field 
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__EnumValue",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__EnumValue",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3834,10 +4058,11 @@ func (ec *executionContext) ___EnumValue_isDeprecated(ctx context.Context, field
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__EnumValue",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__EnumValue",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3868,10 +4093,11 @@ func (ec *executionContext) ___EnumValue_deprecationReason(ctx context.Context, 
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__EnumValue",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__EnumValue",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3899,10 +4125,11 @@ func (ec *executionContext) ___Field_name(ctx context.Context, field graphql.Col
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Field",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__Field",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3933,10 +4160,11 @@ func (ec *executionContext) ___Field_description(ctx context.Context, field grap
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Field",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__Field",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3964,10 +4192,11 @@ func (ec *executionContext) ___Field_args(ctx context.Context, field graphql.Col
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Field",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__Field",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3998,10 +4227,11 @@ func (ec *executionContext) ___Field_type(ctx context.Context, field graphql.Col
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Field",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__Field",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4032,10 +4262,11 @@ func (ec *executionContext) ___Field_isDeprecated(ctx context.Context, field gra
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Field",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Field",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4066,10 +4297,11 @@ func (ec *executionContext) ___Field_deprecationReason(ctx context.Context, fiel
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Field",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Field",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4097,10 +4329,11 @@ func (ec *executionContext) ___InputValue_name(ctx context.Context, field graphq
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__InputValue",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__InputValue",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4131,10 +4364,11 @@ func (ec *executionContext) ___InputValue_description(ctx context.Context, field
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__InputValue",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__InputValue",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4162,10 +4396,11 @@ func (ec *executionContext) ___InputValue_type(ctx context.Context, field graphq
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__InputValue",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__InputValue",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4196,10 +4431,11 @@ func (ec *executionContext) ___InputValue_defaultValue(ctx context.Context, fiel
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__InputValue",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
+		Object:     "__InputValue",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4227,10 +4463,11 @@ func (ec *executionContext) ___Schema_types(ctx context.Context, field graphql.C
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Schema",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Schema",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4261,10 +4498,11 @@ func (ec *executionContext) ___Schema_queryType(ctx context.Context, field graph
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Schema",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Schema",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4295,10 +4533,11 @@ func (ec *executionContext) ___Schema_mutationType(ctx context.Context, field gr
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Schema",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Schema",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4326,10 +4565,11 @@ func (ec *executionContext) ___Schema_subscriptionType(ctx context.Context, fiel
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Schema",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Schema",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4357,10 +4597,11 @@ func (ec *executionContext) ___Schema_directives(ctx context.Context, field grap
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Schema",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Schema",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4391,10 +4632,11 @@ func (ec *executionContext) ___Type_kind(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Type",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Type",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4425,10 +4667,11 @@ func (ec *executionContext) ___Type_name(ctx context.Context, field graphql.Coll
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Type",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Type",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4456,10 +4699,11 @@ func (ec *executionContext) ___Type_description(ctx context.Context, field graph
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Type",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Type",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4487,10 +4731,11 @@ func (ec *executionContext) ___Type_fields(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Type",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Type",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4525,10 +4770,11 @@ func (ec *executionContext) ___Type_interfaces(ctx context.Context, field graphq
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Type",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Type",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4556,10 +4802,11 @@ func (ec *executionContext) ___Type_possibleTypes(ctx context.Context, field gra
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Type",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Type",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4587,10 +4834,11 @@ func (ec *executionContext) ___Type_enumValues(ctx context.Context, field graphq
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Type",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Type",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4625,10 +4873,11 @@ func (ec *executionContext) ___Type_inputFields(ctx context.Context, field graph
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Type",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Type",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4656,10 +4905,11 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "__Type",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
+		Object:     "__Type",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4692,7 +4942,7 @@ func (ec *executionContext) unmarshalInputNewActivity(ctx context.Context, obj i
 		case "id":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			it.ID, err = ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
@@ -4700,7 +4950,7 @@ func (ec *executionContext) unmarshalInputNewActivity(ctx context.Context, obj i
 		case "name":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("name"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			it.Name, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
@@ -4708,7 +4958,7 @@ func (ec *executionContext) unmarshalInputNewActivity(ctx context.Context, obj i
 		case "userId":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
 			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
@@ -4716,7 +4966,7 @@ func (ec *executionContext) unmarshalInputNewActivity(ctx context.Context, obj i
 		case "imgURL":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("imgURL"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("imgURL"))
 			it.ImgURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
@@ -4736,7 +4986,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "name":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("name"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			it.Name, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
@@ -4744,7 +4994,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "calories":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("calories"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("calories"))
 			it.Calories, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
@@ -4752,7 +5002,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "foodImg":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("foodImg"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("foodImg"))
 			it.FoodImg, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
@@ -4760,7 +5010,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "fat":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("fat"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fat"))
 			it.Fat, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
@@ -4768,7 +5018,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "satFat":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("satFat"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("satFat"))
 			it.SatFat, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
@@ -4776,7 +5026,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "carbs":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("carbs"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("carbs"))
 			it.Carbs, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
@@ -4784,7 +5034,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "fiber":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("fiber"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fiber"))
 			it.Fiber, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
@@ -4792,7 +5042,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "sugar":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("sugar"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sugar"))
 			it.Sugar, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
@@ -4800,7 +5050,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "sodium":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("sodium"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sodium"))
 			it.Sodium, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
@@ -4808,7 +5058,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "protein":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("protein"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("protein"))
 			it.Protein, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
@@ -4816,7 +5066,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "imgUrl":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("imgUrl"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("imgUrl"))
 			it.ImgURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
@@ -4824,7 +5074,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "unitId":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("unitId"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("unitId"))
 			it.UnitID, err = ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
@@ -4832,7 +5082,7 @@ func (ec *executionContext) unmarshalInputNewFood(ctx context.Context, obj inter
 		case "id":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			it.ID, err = ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
@@ -4852,7 +5102,7 @@ func (ec *executionContext) unmarshalInputNewFoodEaten(ctx context.Context, obj 
 		case "mealId":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("mealId"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mealId"))
 			it.MealID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
@@ -4860,7 +5110,7 @@ func (ec *executionContext) unmarshalInputNewFoodEaten(ctx context.Context, obj 
 		case "foodId":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("foodId"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("foodId"))
 			it.FoodID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
@@ -4868,7 +5118,7 @@ func (ec *executionContext) unmarshalInputNewFoodEaten(ctx context.Context, obj 
 		case "size":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("size"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("size"))
 			it.Size, err = ec.unmarshalNFloat2float64(ctx, v)
 			if err != nil {
 				return it, err
@@ -4876,7 +5126,7 @@ func (ec *executionContext) unmarshalInputNewFoodEaten(ctx context.Context, obj 
 		case "unitId":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("unitId"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("unitId"))
 			it.UnitID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
@@ -4896,7 +5146,7 @@ func (ec *executionContext) unmarshalInputNewMeal(ctx context.Context, obj inter
 		case "mealDate":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("mealDate"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mealDate"))
 			it.MealDate, err = ec.unmarshalNTime2timeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
@@ -4904,7 +5154,7 @@ func (ec *executionContext) unmarshalInputNewMeal(ctx context.Context, obj inter
 		case "mealTypeId":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("mealTypeId"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mealTypeId"))
 			it.MealTypeID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
@@ -4912,7 +5162,7 @@ func (ec *executionContext) unmarshalInputNewMeal(ctx context.Context, obj inter
 		case "userId":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
 			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
@@ -4932,7 +5182,7 @@ func (ec *executionContext) unmarshalInputNewNote(ctx context.Context, obj inter
 		case "id":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			it.ID, err = ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
@@ -4940,7 +5190,7 @@ func (ec *executionContext) unmarshalInputNewNote(ctx context.Context, obj inter
 		case "noteDate":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("noteDate"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("noteDate"))
 			it.NoteDate, err = ec.unmarshalNTime2timeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
@@ -4948,7 +5198,7 @@ func (ec *executionContext) unmarshalInputNewNote(ctx context.Context, obj inter
 		case "subject":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("subject"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
 			it.Subject, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
@@ -4956,7 +5206,7 @@ func (ec *executionContext) unmarshalInputNewNote(ctx context.Context, obj inter
 		case "content":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("content"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("content"))
 			it.Content, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
@@ -4964,7 +5214,7 @@ func (ec *executionContext) unmarshalInputNewNote(ctx context.Context, obj inter
 		case "userId":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
 			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
@@ -4984,7 +5234,7 @@ func (ec *executionContext) unmarshalInputNewWorkout(ctx context.Context, obj in
 		case "id":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("id"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			it.ID, err = ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
@@ -4992,7 +5242,7 @@ func (ec *executionContext) unmarshalInputNewWorkout(ctx context.Context, obj in
 		case "userId":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("userId"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
 			it.UserID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
@@ -5000,7 +5250,7 @@ func (ec *executionContext) unmarshalInputNewWorkout(ctx context.Context, obj in
 		case "activityDate":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("activityDate"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("activityDate"))
 			it.ActivityDate, err = ec.unmarshalNTime2timeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
@@ -5008,7 +5258,7 @@ func (ec *executionContext) unmarshalInputNewWorkout(ctx context.Context, obj in
 		case "activityId":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("activityId"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("activityId"))
 			it.ActivityID, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
@@ -5016,7 +5266,7 @@ func (ec *executionContext) unmarshalInputNewWorkout(ctx context.Context, obj in
 		case "duration":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("duration"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("duration"))
 			it.Duration, err = ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
@@ -5024,7 +5274,7 @@ func (ec *executionContext) unmarshalInputNewWorkout(ctx context.Context, obj in
 		case "calories":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("calories"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("calories"))
 			it.Calories, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
@@ -5032,7 +5282,7 @@ func (ec *executionContext) unmarshalInputNewWorkout(ctx context.Context, obj in
 		case "intensity":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("intensity"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("intensity"))
 			it.Intensity, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
@@ -5040,7 +5290,7 @@ func (ec *executionContext) unmarshalInputNewWorkout(ctx context.Context, obj in
 		case "distance":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("distance"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("distance"))
 			it.Distance, err = ec.unmarshalOFloat2ᚖfloat64(ctx, v)
 			if err != nil {
 				return it, err
@@ -5048,7 +5298,7 @@ func (ec *executionContext) unmarshalInputNewWorkout(ctx context.Context, obj in
 		case "startTime":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("startTime"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startTime"))
 			it.StartTime, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
@@ -5056,7 +5306,7 @@ func (ec *executionContext) unmarshalInputNewWorkout(ctx context.Context, obj in
 		case "endTime":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("endTime"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endTime"))
 			it.EndTime, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
@@ -5064,8 +5314,80 @@ func (ec *executionContext) unmarshalInputNewWorkout(ctx context.Context, obj in
 		case "comment":
 			var err error
 
-			ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithField("comment"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("comment"))
 			it.Comment, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputPredicate(ctx context.Context, obj interface{}) (model.Predicate, error) {
+	var it model.Predicate
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "values":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("values"))
+			it.Values, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "operator":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("operator"))
+			it.Operator, err = ec.unmarshalOOperator2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "innerPredicate":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("innerPredicate"))
+			it.InnerPredicate, err = ec.unmarshalOPredicateGroup2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐPredicateGroup(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputPredicateGroup(ctx context.Context, obj interface{}) (model.PredicateGroup, error) {
+	var it model.PredicateGroup
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "predicates":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("predicates"))
+			it.Predicates, err = ec.unmarshalNPredicate2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐPredicateᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "logic":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("logic"))
+			it.Logic, err = ec.unmarshalNLogic2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐLogic(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5382,6 +5704,30 @@ func (ec *executionContext) _Note(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var predicateResultImplementors = []string{"PredicateResult"}
+
+func (ec *executionContext) _PredicateResult(ctx context.Context, sel ast.SelectionSet, obj *model.PredicateResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, predicateResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PredicateResult")
+		case "query":
+			out.Values[i] = ec._PredicateResult_query(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -5490,6 +5836,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_workoutsForDay(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "workoutQuery":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_workoutQuery(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -5936,7 +6296,7 @@ func (ec *executionContext) marshalNActivity2ᚖgithubᚗcomᚋmvandergriftᚋen
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
@@ -5951,7 +6311,7 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 
 func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
 	res, err := graphql.UnmarshalFloat(v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
@@ -5966,7 +6326,7 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 
 func (ec *executionContext) unmarshalNFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
 	res, err := graphql.UnmarshalFloat(v)
-	return &res, graphql.WrapErrorWithInputPath(ctx, err)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
@@ -6081,7 +6441,7 @@ func (ec *executionContext) marshalNFoodEaten2ᚖgithubᚗcomᚋmvandergriftᚋe
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
@@ -6092,6 +6452,16 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNLogic2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐLogic(ctx context.Context, v interface{}) (model.Logic, error) {
+	var res model.Logic
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNLogic2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐLogic(ctx context.Context, sel ast.SelectionSet, v model.Logic) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNMeal2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐMeal(ctx context.Context, sel ast.SelectionSet, v model.Meal) graphql.Marshaler {
@@ -6157,22 +6527,22 @@ func (ec *executionContext) marshalNMealType2ᚖgithubᚗcomᚋmvandergriftᚋen
 
 func (ec *executionContext) unmarshalNNewFood2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewFood(ctx context.Context, v interface{}) (model.NewFood, error) {
 	res, err := ec.unmarshalInputNewFood(ctx, v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNNewFoodEaten2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewFoodEaten(ctx context.Context, v interface{}) (model.NewFoodEaten, error) {
 	res, err := ec.unmarshalInputNewFoodEaten(ctx, v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNNewMeal2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewMeal(ctx context.Context, v interface{}) (model.NewMeal, error) {
 	res, err := ec.unmarshalInputNewMeal(ctx, v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNNewNote2githubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNewNote(ctx context.Context, v interface{}) (model.NewNote, error) {
 	res, err := ec.unmarshalInputNewNote(ctx, v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNNote2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐNoteᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Note) graphql.Marshaler {
@@ -6222,9 +6592,35 @@ func (ec *executionContext) marshalNNote2ᚖgithubᚗcomᚋmvandergriftᚋenergy
 	return ec._Note(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNPredicate2ᚕᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐPredicateᚄ(ctx context.Context, v interface{}) ([]*model.Predicate, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.Predicate, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNPredicate2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐPredicate(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNPredicate2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐPredicate(ctx context.Context, v interface{}) (*model.Predicate, error) {
+	res, err := ec.unmarshalInputPredicate(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
@@ -6239,7 +6635,7 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
 	res, err := graphql.UnmarshalTime(v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
@@ -6409,7 +6805,7 @@ func (ec *executionContext) marshalN__Directive2ᚕgithubᚗcomᚋ99designsᚋgq
 
 func (ec *executionContext) unmarshalN__DirectiveLocation2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalN__DirectiveLocation2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
@@ -6434,10 +6830,10 @@ func (ec *executionContext) unmarshalN__DirectiveLocation2ᚕstringᚄ(ctx conte
 	var err error
 	res := make([]string, len(vSlice))
 	for i := range vSlice {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithIndex(i))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalN__DirectiveLocation2string(ctx, vSlice[i])
 		if err != nil {
-			return nil, graphql.WrapErrorWithInputPath(ctx, err)
+			return nil, err
 		}
 	}
 	return res, nil
@@ -6582,7 +6978,7 @@ func (ec *executionContext) marshalN__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgen�
 
 func (ec *executionContext) unmarshalN__TypeKind2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
@@ -6597,7 +6993,7 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
@@ -6609,7 +7005,7 @@ func (ec *executionContext) unmarshalOBoolean2ᚖbool(ctx context.Context, v int
 		return nil, nil
 	}
 	res, err := graphql.UnmarshalBoolean(v)
-	return &res, graphql.WrapErrorWithInputPath(ctx, err)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast.SelectionSet, v *bool) graphql.Marshaler {
@@ -6624,7 +7020,7 @@ func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v in
 		return nil, nil
 	}
 	res, err := graphql.UnmarshalFloat(v)
-	return &res, graphql.WrapErrorWithInputPath(ctx, err)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
@@ -6663,10 +7059,10 @@ func (ec *executionContext) unmarshalOInt2ᚕintᚄ(ctx context.Context, v inter
 	var err error
 	res := make([]int, len(vSlice))
 	for i := range vSlice {
-		ctx := graphql.WithFieldInputContext(ctx, graphql.NewFieldInputWithIndex(i))
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalNInt2int(ctx, vSlice[i])
 		if err != nil {
-			return nil, graphql.WrapErrorWithInputPath(ctx, err)
+			return nil, err
 		}
 	}
 	return res, nil
@@ -6689,7 +7085,7 @@ func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interfac
 		return nil, nil
 	}
 	res, err := graphql.UnmarshalInt(v)
-	return &res, graphql.WrapErrorWithInputPath(ctx, err)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
@@ -6706,13 +7102,73 @@ func (ec *executionContext) marshalONote2ᚖgithubᚗcomᚋmvandergriftᚋenergy
 	return ec._Note(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOOperator2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐOperator(ctx context.Context, v interface{}) (*model.Operator, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.Operator)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOOperator2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐOperator(ctx context.Context, sel ast.SelectionSet, v *model.Operator) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOPredicateGroup2ᚖgithubᚗcomᚋmvandergriftᚋenergyᚑgqlᚋgraphᚋmodelᚐPredicateGroup(ctx context.Context, v interface{}) (*model.PredicateGroup, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPredicateGroup(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
-	return res, graphql.WrapErrorWithInputPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalString(v)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
@@ -6720,7 +7176,7 @@ func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v in
 		return nil, nil
 	}
 	res, err := graphql.UnmarshalString(v)
-	return &res, graphql.WrapErrorWithInputPath(ctx, err)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
@@ -6735,7 +7191,7 @@ func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v
 		return nil, nil
 	}
 	res, err := graphql.UnmarshalTime(v)
-	return &res, graphql.WrapErrorWithInputPath(ctx, err)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
