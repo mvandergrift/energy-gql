@@ -3,6 +3,9 @@
 package model
 
 import (
+	"fmt"
+	"io"
+	"strconv"
 	"time"
 )
 
@@ -69,6 +72,22 @@ type NewWorkout struct {
 	Comment      *string    `json:"comment"`
 }
 
+type Predicate struct {
+	Name           *string         `json:"name"`
+	Values         []string        `json:"values"`
+	Operator       *Operator       `json:"operator"`
+	InnerPredicate *PredicateGroup `json:"innerPredicate"`
+}
+
+type PredicateGroup struct {
+	Predicates []*Predicate `json:"predicates"`
+	Logic      Logic        `json:"logic"`
+}
+
+type PredicateResult struct {
+	Query *string `json:"query"`
+}
+
 type UnitType struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
@@ -79,4 +98,102 @@ type User struct {
 	Username  string `json:"username"`
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
+}
+
+type Logic string
+
+const (
+	LogicAnd Logic = "AND"
+	LogicOr  Logic = "OR"
+)
+
+var AllLogic = []Logic{
+	LogicAnd,
+	LogicOr,
+}
+
+func (e Logic) IsValid() bool {
+	switch e {
+	case LogicAnd, LogicOr:
+		return true
+	}
+	return false
+}
+
+func (e Logic) String() string {
+	return string(e)
+}
+
+func (e *Logic) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Logic(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Logic", str)
+	}
+	return nil
+}
+
+func (e Logic) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type Operator string
+
+const (
+	OperatorEqual        Operator = "EQUAL"
+	OperatorNotEqual     Operator = "NOT_EQUAL"
+	OperatorGreator      Operator = "GREATOR"
+	OperatorLess         Operator = "LESS"
+	OperatorGreatorEqual Operator = "GREATOR_EQUAL"
+	OperatorLessEqual    Operator = "LESS_EQUAL"
+	OperatorContains     Operator = "CONTAINS"
+	OperatorStartsWith   Operator = "STARTS_WITH"
+	OperatorIsNull       Operator = "IS_NULL"
+	OperatorIsNotNull    Operator = "IS_NOT_NULL"
+)
+
+var AllOperator = []Operator{
+	OperatorEqual,
+	OperatorNotEqual,
+	OperatorGreator,
+	OperatorLess,
+	OperatorGreatorEqual,
+	OperatorLessEqual,
+	OperatorContains,
+	OperatorStartsWith,
+	OperatorIsNull,
+	OperatorIsNotNull,
+}
+
+func (e Operator) IsValid() bool {
+	switch e {
+	case OperatorEqual, OperatorNotEqual, OperatorGreator, OperatorLess, OperatorGreatorEqual, OperatorLessEqual, OperatorContains, OperatorStartsWith, OperatorIsNull, OperatorIsNotNull:
+		return true
+	}
+	return false
+}
+
+func (e Operator) String() string {
+	return string(e)
+}
+
+func (e *Operator) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Operator(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Operator", str)
+	}
+	return nil
+}
+
+func (e Operator) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
