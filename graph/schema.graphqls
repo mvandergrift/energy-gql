@@ -146,6 +146,40 @@ input NewWorkout {
     comment: String
 }
 
+enum Logic {
+    AND
+    OR
+}
+
+enum Operator {
+    EQUAL
+    NOT_EQUAL
+    GREATOR
+    LESS
+    GREATOR_EQUAL
+    LESS_EQUAL
+    CONTAINS
+    STARTS_WITH
+    IS_NULL
+    IS_NOT_NULL
+}
+
+input PredicateGroup {
+    predicates: [Predicate!]!
+    logic: Logic!
+}
+
+input Predicate {
+    name: String
+    values: [String!]
+    operator: Operator
+    innerPredicate: PredicateGroup
+}
+
+type PredicateResult {
+    query: String
+}
+
 type Query {
     allMeals(userId: Int): [Meal!]!
     mealsForDay(userId: Int!, date: Time!): [Meal!]!
@@ -154,6 +188,7 @@ type Query {
     unitsForFood(foodId: Int): [Unit!]!
     notes(userId: Int, date: Time): [Note!]!
     workoutsForDay(userId: Int!, date: Time, attributes: [Int!]): [Workout!]!
+    workoutQuery(filter: PredicateGroup): [Workout!]!
 }
 
 type Mutation {
