@@ -186,11 +186,11 @@ func (r *queryResolver) Notes(ctx context.Context, userID *int, date *time.Time)
 
 func (r *queryResolver) WorkoutsForDay(ctx context.Context, userID int, date *time.Time, attributes []int) ([]*model.Workout, error) {
 	var workouts []*model.Workout
-	tx := r.DB.Order("activity_date desc")
+	tx := r.DB.Order("start_time")
 
 	if date != nil {
 		log.Println("Date filter", date)
-		tx = tx.Where("activity_date = ? ", date)
+		tx = tx.Where("(start_time > ? OR end_time > ?) AND (start_time < ? OR end_time < ?)", date, date, date.AddDate(0, 0, 1), date.AddDate(0, 0, 1))
 	}
 
 	if len(attributes) > 0 {
