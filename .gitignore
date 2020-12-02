@@ -25,6 +25,7 @@ bin/
 # Secrets and other private files
 .env
 .env.local
+serverless.yaml
 
 # Database
 postgres-data
